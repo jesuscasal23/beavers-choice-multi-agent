@@ -1,0 +1,64 @@
+---
+title: "Beaver's Choice Paper Company — Multi-Agent Quoting & Fulfilment System"
+---
+flowchart TD
+    CUST(["Customer request<br/>free text + request_date"]) --> ORCH
+
+    ORCH["<b>1. orchestrator_agent</b><br/><i>smolagents CodeAgent</i><br/>Extracts line items and the required-by date,<br/>delegates in a fixed order, composes ONE<br/>customer-facing reply.<br/><b>Owns no tools; never touches the database.</b>"]
+
+    ORCH -->|"① items, qty, dates"| INV
+    INV -->|"AVAILABLE / RESTOCKED /<br/>UNAVAILABLE + reason"| ORCH
+    ORCH -->|"② resolved items, qty"| QUO
+    QUO -->|"total + discount rate"| ORCH
+    ORCH -->|"③ fulfillable lines<br/>+ agreed totals"| SAL
+    SAL -->|"SALE COMPLETED /<br/>SALE REJECTED + reason"| ORCH
+    ORCH ==> OUT(["Customer reply: price, discount rationale,<br/>availability date, or specific refusal reason<br/>→ test_results.csv"])
+
+    subgraph W1["2. inventory_agent — stock &amp; supply (ToolCallingAgent)"]
+        direction LR
+        INV["<b>inventory_agent</b><br/>Decides if each line can be supplied,<br/>and buys stock when it cannot."]
+        T1["<b>ensure_stock_available</b> ★ primary<br/>Atomically: resolve name → measure shortfall<br/>→ size and place restock → return verdict.<br/><i>get_stock_level + get_supplier_delivery_date<br/>+ get_cash_balance + create_transaction</i>"]
+        T2["<b>place_restock_order</b><br/>Buys an exact quantity; refuses if delivery is<br/>late or cash reserve would be breached.<br/><i>get_supplier_delivery_date + get_cash_balance<br/>+ create_transaction</i>"]
+        T3["<b>check_stock_level</b><br/>Units on hand for one item on a date,<br/>with fuzzy item-name resolution.<br/><i>get_stock_level</i>"]
+        T4["<b>inventory_snapshot</b><br/>Whole-catalogue stock snapshot; health<br/>check before large orders.<br/><i>get_all_inventory</i>"]
+        T5["<b>check_supplier_delivery</b><br/>Estimated arrival date for a restock,<br/>to test the customer's deadline.<br/><i>get_supplier_delivery_date</i>"]
+        T6["<b>check_cash_balance</b><br/>Cash available to fund a restock.<br/><i>get_cash_balance</i>"]
+        T7["<b>catalog_listing</b><br/>Every sellable item and list price.<br/><i>paper_supplies price list</i>"]
+        INV --- T1 & T2 & T3 & T4 & T5 & T6 & T7
+    end
+
+    subgraph W2["3. quoting_agent — pricing (ToolCallingAgent)"]
+        direction LR
+        QUO["<b>quoting_agent</b><br/>Prices each line; owns the<br/>bulk-discount policy."]
+        T8["<b>calculate_quote</b><br/>Deterministic total: list price × qty minus<br/>the bulk-discount tier. All maths in Python.<br/><i>get_stock_level + paper_supplies</i>"]
+        T9["<b>find_similar_quotes</b><br/>Comparable past quotes so pricing follows<br/>precedent; retries with fewer keywords.<br/><i>search_quote_history</i>"]
+        T10["<b>catalog_listing</b><br/>Confirms exact item name and list price.<br/><i>paper_supplies price list</i>"]
+        QUO --- T8 & T9 & T10
+    end
+
+    subgraph W3["4. sales_agent — fulfilment (ToolCallingAgent)"]
+        direction LR
+        SAL["<b>sales_agent</b><br/>Commits or refuses each<br/>transaction."]
+        T11["<b>record_sale</b><br/>Writes the sale. Re-checks stock AND<br/>re-derives the price at commit time, so a<br/>stale quote cannot oversell or mis-bill.<br/><i>get_stock_level + create_transaction</i>"]
+        T12["<b>company_financial_report</b><br/>Internal solvency check before orders<br/>above $5,000. Never shown to customers.<br/><i>generate_financial_report</i>"]
+        T13["<b>check_stock_level</b><br/>Independent stock re-verification.<br/><i>get_stock_level</i>"]
+        T14["<b>check_supplier_delivery</b><br/>Confirms the date promised to the customer.<br/><i>get_supplier_delivery_date</i>"]
+        SAL --- T11 & T12 & T13 & T14
+    end
+
+    %% force left-to-right band order: inventory, quoting, sales
+    W1 ~~~ W2 ~~~ W3
+
+    DB[("<b>munder_difflin.db</b><br/>transactions · inventory<br/>quotes · quote_requests")]
+    W1 -.->|read / write| DB
+    W2 -.->|read| DB
+    W3 -.->|read / write| DB
+
+    classDef agent fill:#1f4e79,stroke:#0d2b45,color:#ffffff,stroke-width:2px
+    classDef toolbox fill:#eef4fb,stroke:#1f4e79,color:#0d2b45
+    classDef store fill:#fff4e0,stroke:#b8860b,color:#5c4300,stroke-width:2px
+    classDef io fill:#e9f7ef,stroke:#1e7e4f,color:#12482f,stroke-width:2px
+    class ORCH,INV,QUO,SAL agent
+    class T1,T2,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12,T13,T14 toolbox
+    class DB store
+    class CUST,OUT io
