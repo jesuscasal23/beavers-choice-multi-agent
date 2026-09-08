@@ -662,6 +662,69 @@ DEFAULT_LEAD_DAYS = 10
 CATALOG_BY_NAME = {item["item_name"]: item for item in paper_supplies}
 CATALOG_LOWER = {name.lower(): name for name in CATALOG_BY_NAME}
 
+# Business terms customers use for things Beaver's Choice does not sell. Fuzzy
+# matching must never map these onto a catalog item. In evaluation, "tickets"
+# scored 0.632 against "sticky notes" -- close enough for the old 0.6 cutoff to
+# accept it, so a customer who asked for 10,000 tickets was sold and billed for
+# 10,000 sticky notes. A blocklist is checked before any similarity scoring.
+UNSUPPORTED_PRODUCT_TERMS = {
+    "ticket", "tickets", "balloon", "balloons", "cardboard", "signage",
+}
+
+# Explicit synonyms for things we DO sell. These exist because the fuzzy matcher
+# is now deliberately strict (see RESOLVER_FUZZY_CUTOFF): a real company keeps an
+# auditable synonym list rather than letting string similarity guess. Every entry
+# below was derived from wording that actually appeared in customer requests.
+CATALOG_ALIASES = {
+    # Copier / printer paper -- customers almost never say "standard copy paper".
+    "printer paper": "Standard copy paper",
+    "white printer paper": "Standard copy paper",
+    "standard printer paper": "Standard copy paper",
+    "standard printing paper": "Standard copy paper",
+    "a4 printer paper": "A4 paper",
+    "a4 printing paper": "A4 paper",
+    "a4 size printer paper": "A4 paper",
+    "a4 white paper": "A4 paper",
+    "a4 white printer paper": "A4 paper",
+    # Posters and boards
+    "posters": "Poster paper",
+    "poster board": "Large poster paper (24x36 inches)",
+    "poster boards": "Large poster paper (24x36 inches)",
+    # Party goods
+    "streamers": "Party streamers",
+    "table napkins": "Paper napkins",
+    # Sizes the catalog spells differently from customers
+    "legal paper": "Legal-size paper",
+    "letter paper": "Letter-sized paper",
+    # Tape
+    "washi tape": "Decorative adhesive tape (washi tape)",
+    "decorative washi tape": "Decorative adhesive tape (washi tape)",
+    "decorative adhesive tape": "Decorative adhesive tape (washi tape)",
+}
+
+# Similarity threshold of last resort. Raised from 0.60 to 0.82 after an audit
+# showed 0.60 was mapping "A4 printing paper" to "Wrapping paper" and
+# "A4 white printer paper" to "Glitter paper". Above 0.82 a match is a spelling
+# variant; below it, it is a guess -- and a guess here bills a customer for a
+# product they did not order.
+RESOLVER_FUZZY_CUTOFF = 0.82
+
+# Guard the invariant the blocklist depends on: no unsupported term may appear
+# inside a real catalog name, or we would block a product we actually sell.
+for _term in UNSUPPORTED_PRODUCT_TERMS:
+    assert not any(_term in _name for _name in CATALOG_LOWER), (
+        f"unsupported term {_term!r} collides with a catalog item"
+    )
+for _alias_target in CATALOG_ALIASES.values():
+    assert _alias_target in CATALOG_BY_NAME, f"alias target {_alias_target!r} is not a catalog item"
+
+# Paper sizes the catalog names explicitly. A fuzzy match that swaps one of
+# these for another is a product substitution, not a spelling correction:
+# "A3 paper" scores 0.875 against "A4 paper", comfortably above the cutoff, and
+# the company does not sell A3 paper at all. Size-agnostic items are unaffected,
+# so "A3 colored paper" still resolves to "Colored paper".
+SIZE_TOKENS = ("a3", "a4", "a5", "legal", "letter")
+
 # =============================================================================
 # SECTION 2 -- Tools
 #
@@ -685,33 +748,80 @@ CATALOG_LOWER = {name.lower(): name for name in CATALOG_BY_NAME}
 
 
 # ---- Private helpers (not exposed to the agents) ----------------------------
+def _named_size(text: str) -> str:
+    """The paper size a phrase names, or an empty string if it names none."""
+    for token in SIZE_TOKENS:
+        if re.search(rf"\b{token}\b", text):
+            return token
+    return ""
+
+
 def _resolve_item_name(raw_name: str) -> str:
     """Map a loosely-worded product name onto an exact catalog item name.
 
-    Tried in order: exact match, case-insensitive match, longest catalog name
-    contained in the customer's phrasing (so "heavy cardstock (white)" finds
-    "Cardstock"), then a fuzzy close match. Doing this in Python rather than
-    leaving it to the model removes a whole class of hallucinated item names.
+    Resolution is deliberately ordered from certain to speculative, and refuses
+    rather than guessing:
 
-    Returns an empty string when nothing plausible matches.
+      0. Reject outright if any word is a known non-catalog product term.
+      1. Exact match, then case-insensitive exact match.
+      2. Explicit synonym from CATALOG_ALIASES.
+      3. Longest catalog name contained in the phrasing, so "heavy cardstock
+         (white)" finds "Cardstock" and "A4 glossy paper" finds "Glossy paper".
+      4. Longest synonym contained in the phrasing, so a trailing qualifier such
+         as "table napkins (white)" still resolves.
+      5. Fuzzy match, but only above RESOLVER_FUZZY_CUTOFF, and never across a
+         paper-size boundary.
+
+    Step 0 and the raised cutoff in step 4 both exist for the same reason: a
+    wrong resolution here does not fail loudly, it sells the customer a product
+    they never asked for and bills them for it.
+
+    Returns an empty string when nothing matches, which callers surface to the
+    customer as "not an item we carry".
     """
     if not raw_name:
         return ""
-    if raw_name in CATALOG_BY_NAME:
-        return raw_name
 
     lowered = raw_name.strip().lower()
+
+    # 0. Known non-catalog products, checked word by word so "10,000 tickets"
+    #    is refused as surely as "tickets".
+    words = set(re.findall(r"[a-z]+", lowered))
+    if words & UNSUPPORTED_PRODUCT_TERMS:
+        return ""
+
+    # 1. Exact.
+    if raw_name in CATALOG_BY_NAME:
+        return raw_name
     if lowered in CATALOG_LOWER:
         return CATALOG_LOWER[lowered]
 
-    # Longest catalog name appearing inside the customer's phrasing wins, so
-    # "A4 glossy paper" resolves to "Glossy paper" rather than "A4 paper".
+    # 2. Curated synonyms.
+    if lowered in CATALOG_ALIASES:
+        return CATALOG_ALIASES[lowered]
+
+    # 3. Longest catalog name appearing inside the phrasing.
     contained = [name for name in CATALOG_LOWER if name in lowered]
     if contained:
         return CATALOG_LOWER[max(contained, key=len)]
 
-    close = difflib.get_close_matches(lowered, list(CATALOG_LOWER), n=1, cutoff=0.6)
-    return CATALOG_LOWER[close[0]] if close else ""
+    # 4. Synonym appearing inside the phrasing, for trailing qualifiers like
+    #    "(white)" or a size in parentheses.
+    alias_hits = [alias for alias in CATALOG_ALIASES if alias in lowered]
+    if alias_hits:
+        return CATALOG_ALIASES[max(alias_hits, key=len)]
+
+    # 5. Similarity, only when it is close enough to be a spelling variant, and
+    #    never when it would swap one named paper size for another.
+    close = difflib.get_close_matches(
+        lowered, list(CATALOG_LOWER), n=1, cutoff=RESOLVER_FUZZY_CUTOFF
+    )
+    if not close:
+        return ""
+    requested_size, matched_size = _named_size(lowered), _named_size(close[0])
+    if requested_size and matched_size and requested_size != matched_size:
+        return ""
+    return CATALOG_LOWER[close[0]]
 
 
 def _unit_price(item_name: str) -> float:

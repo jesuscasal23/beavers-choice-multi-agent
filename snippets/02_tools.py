@@ -21,33 +21,80 @@
 
 
 # ---- Private helpers (not exposed to the agents) ----------------------------
+def _named_size(text: str) -> str:
+    """The paper size a phrase names, or an empty string if it names none."""
+    for token in SIZE_TOKENS:
+        if re.search(rf"\b{token}\b", text):
+            return token
+    return ""
+
+
 def _resolve_item_name(raw_name: str) -> str:
     """Map a loosely-worded product name onto an exact catalog item name.
 
-    Tried in order: exact match, case-insensitive match, longest catalog name
-    contained in the customer's phrasing (so "heavy cardstock (white)" finds
-    "Cardstock"), then a fuzzy close match. Doing this in Python rather than
-    leaving it to the model removes a whole class of hallucinated item names.
+    Resolution is deliberately ordered from certain to speculative, and refuses
+    rather than guessing:
 
-    Returns an empty string when nothing plausible matches.
+      0. Reject outright if any word is a known non-catalog product term.
+      1. Exact match, then case-insensitive exact match.
+      2. Explicit synonym from CATALOG_ALIASES.
+      3. Longest catalog name contained in the phrasing, so "heavy cardstock
+         (white)" finds "Cardstock" and "A4 glossy paper" finds "Glossy paper".
+      4. Longest synonym contained in the phrasing, so a trailing qualifier such
+         as "table napkins (white)" still resolves.
+      5. Fuzzy match, but only above RESOLVER_FUZZY_CUTOFF, and never across a
+         paper-size boundary.
+
+    Step 0 and the raised cutoff in step 4 both exist for the same reason: a
+    wrong resolution here does not fail loudly, it sells the customer a product
+    they never asked for and bills them for it.
+
+    Returns an empty string when nothing matches, which callers surface to the
+    customer as "not an item we carry".
     """
     if not raw_name:
         return ""
-    if raw_name in CATALOG_BY_NAME:
-        return raw_name
 
     lowered = raw_name.strip().lower()
+
+    # 0. Known non-catalog products, checked word by word so "10,000 tickets"
+    #    is refused as surely as "tickets".
+    words = set(re.findall(r"[a-z]+", lowered))
+    if words & UNSUPPORTED_PRODUCT_TERMS:
+        return ""
+
+    # 1. Exact.
+    if raw_name in CATALOG_BY_NAME:
+        return raw_name
     if lowered in CATALOG_LOWER:
         return CATALOG_LOWER[lowered]
 
-    # Longest catalog name appearing inside the customer's phrasing wins, so
-    # "A4 glossy paper" resolves to "Glossy paper" rather than "A4 paper".
+    # 2. Curated synonyms.
+    if lowered in CATALOG_ALIASES:
+        return CATALOG_ALIASES[lowered]
+
+    # 3. Longest catalog name appearing inside the phrasing.
     contained = [name for name in CATALOG_LOWER if name in lowered]
     if contained:
         return CATALOG_LOWER[max(contained, key=len)]
 
-    close = difflib.get_close_matches(lowered, list(CATALOG_LOWER), n=1, cutoff=0.6)
-    return CATALOG_LOWER[close[0]] if close else ""
+    # 4. Synonym appearing inside the phrasing, for trailing qualifiers like
+    #    "(white)" or a size in parentheses.
+    alias_hits = [alias for alias in CATALOG_ALIASES if alias in lowered]
+    if alias_hits:
+        return CATALOG_ALIASES[max(alias_hits, key=len)]
+
+    # 5. Similarity, only when it is close enough to be a spelling variant, and
+    #    never when it would swap one named paper size for another.
+    close = difflib.get_close_matches(
+        lowered, list(CATALOG_LOWER), n=1, cutoff=RESOLVER_FUZZY_CUTOFF
+    )
+    if not close:
+        return ""
+    requested_size, matched_size = _named_size(lowered), _named_size(close[0])
+    if requested_size and matched_size and requested_size != matched_size:
+        return ""
+    return CATALOG_LOWER[close[0]]
 
 
 def _unit_price(item_name: str) -> float:

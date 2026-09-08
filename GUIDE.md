@@ -24,6 +24,7 @@ cd ~/Desktop/beavers-choice-project && .venv/bin/python project_starter.py
 | `analyze_results.py` | Checks `test_results.csv` against the rubric thresholds |
 | `audit_prices.py` | Re-derives every recorded sale and flags any that diverge from the quote |
 | `audit_replies.py` | Scans every reply for leaked internal status codes, and for prices the ledger does not back |
+| `audit_reconciliation.py` | Checks each response against its slice of the ledger: cash delta, order totals, item substitution |
 | `diagram/workflow.mmd` | Mermaid source for the workflow diagram |
 | `diagram/beavers_choice_workflow.png` | **Rendered diagram for submission** |
 | `report/reflection_report.md` | **The reflection report for submission** |
@@ -205,6 +206,26 @@ that does not match one of them with an em dash, and appends a ledger-generated
 Three bugs, one root cause: trusting the model to carry a value across a hop.
 Each was fixed by moving the guarantee into code at the point of use.
 
+### 3.7 The resolver refuses instead of guessing — the fifth bug
+
+`_resolve_item_name` ended in a `difflib` fallback at a 0.60 cutoff. A customer
+asked for 10,000 **tickets**; *"tickets"* scores 0.632 against *"sticky notes"*,
+so the system sold them 10,000 sticky notes and billed $255 for a product they
+never mentioned. Auditing all 74 item phrasings the agents had ever used showed
+it was systemic — *"A4 printing paper"* was resolving to **Wrapping paper**,
+*"A4 white printer paper"* to **Glitter paper**, *"printer paper"* to
+**Poster paper**.
+
+The resolver is now ordered from certain to speculative: a word-level blocklist
+(`UNSUPPORTED_PRODUCT_TERMS`) ahead of any scoring, exact match, a curated
+synonym table (`CATALOG_ALIASES`) matched exactly and by containment, catalog
+containment, then fuzzy matching at 0.82 that may never cross a paper-size
+boundary — because *"A3 paper"* scores 0.875 against *"A4 paper"* and swapping a
+size is a substitution, not a spelling fix.
+
+70 of the 74 phrasings resolve; the four that do not (tickets, balloons,
+cardboard for signage, A3 paper) are genuinely not carried.
+
 ---
 
 ## 4. Tools and helper-function coverage
@@ -280,13 +301,14 @@ of 20 costs a chunk of the Vocareum budget.
 **Check the rubric thresholds:**
 
 ```bash
-.venv/bin/python analyze_results.py && .venv/bin/python audit_prices.py && .venv/bin/python audit_replies.py
+.venv/bin/python analyze_results.py && .venv/bin/python audit_prices.py && .venv/bin/python audit_replies.py && .venv/bin/python audit_reconciliation.py
 ```
 
 You need ≥3 requests that change the cash balance, ≥3 fulfilled, and ≥1
 unfulfilled with a stated reason. Both audits must report zero: every recorded
 sale has to equal the price the customer was quoted, no internal status code may
-appear in a reply, and no price may appear that the ledger does not back.
+appear in a reply, no price may appear that the ledger does not back, and every
+response must reconcile with its slice of the ledger.
 
 ### Troubleshooting
 

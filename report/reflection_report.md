@@ -134,10 +134,24 @@ Two properties of the provided code shaped the tools:
   come from `get_stock_level` against the transactions ledger.
 
 **Item-name resolution is also done in Python**, not by the model
-(`_resolve_item_name`): exact match → case-insensitive → longest catalog name
-contained in the customer's phrasing → `difflib` close match. That is how
-*"heavy cardstock (white)"* resolves to `Cardstock`, and how *"A4 glossy paper"*
-correctly resolves to `Glossy paper` rather than `A4 paper`.
+(`_resolve_item_name`), and it is deliberately ordered from certain to
+speculative — refusing rather than guessing:
+
+0. reject outright if any word is a known non-catalog product term
+   (`UNSUPPORTED_PRODUCT_TERMS`);
+1. exact, then case-insensitive exact;
+2. an explicit synonym from `CATALOG_ALIASES`;
+3. the longest catalog name contained in the phrasing, so *"heavy cardstock
+   (white)"* finds `Cardstock` and *"A4 glossy paper"* finds `Glossy paper`
+   rather than `A4 paper`;
+4. the longest synonym contained in the phrasing, so a trailing qualifier such
+   as *"table napkins (white)"* still resolves;
+5. a fuzzy match, but only above `RESOLVER_FUZZY_CUTOFF` (0.82) and never
+   across a paper-size boundary.
+
+Steps 0 and 5 exist for the same reason, and section 4.8 explains what happened
+without them: a wrong resolution here does not fail loudly — it sells the
+customer a product they never asked for and bills them for it.
 
 ---
 
@@ -200,94 +214,99 @@ Four mechanisms keep the customer output complete but not leaky:
 The system was run against all 20 requests in `quote_requests_sample.csv`.
 Results are in `test_results.csv`; the full agent trace is in `run_full.log`.
 Four scripts reproduce the checks below: `analyze_results.py` (rubric
-thresholds), `audit_prices.py` (every sale matches its quote) and
-`audit_replies.py` (no internal vocabulary reaches a customer, and every price
-shown is backed by a recorded sale).
+thresholds), `audit_prices.py` (every sale matches its quote), `audit_replies.py`
+(no internal vocabulary reaches a customer, and every price shown is backed by a
+recorded sale) and `audit_reconciliation.py` (the customer story and the ledger
+agree).
 
 ### 4.1 Run summary
 
 | Metric | Value | Rubric threshold |
 |---|---|---|
 | Requests processed | 20 / 20 | all |
-| Requests that changed the cash balance | **17** | ≥ 3 |
-| Requests with at least one recorded sale | **17** | ≥ 3 |
-| Requests left entirely unfulfilled | **3** (#13, #15, #19) | ≥ 1 |
+| Requests that changed the cash balance | **18** | ≥ 3 |
+| Requests with at least one recorded sale | **18** | ≥ 3 |
+| Requests left entirely unfulfilled | **2** (#15, #19) | ≥ 1 |
 | Requests containing at least one declined line | 9 | — |
-| Sales priced differently from their quote | **0 / 39** | — |
+| Sales priced differently from their quote | **0 / 43** | — |
 | Prices shown to a customer not backed by the ledger | **0 / 20** | — |
+| Cash deltas that fail to reconcile with the ledger | **0 / 20** | — |
+| Sales of an item the customer did not ask for | **0** | — |
 | Internal status codes leaked to a customer | **0 / 20** | — |
 | Runtime errors / fallback responses | 0 | — |
 
 | Financial position | Start | End | Change |
 |---|---|---|---|
-| Cash balance | $45,059.70 | $46,589.49 | **+$1,529.79** |
-| Inventory value | $4,940.30 | $4,740.80 | −$199.50 |
-| Total assets | $50,000.00 | $51,330.29 | +$1,330.29 |
+| Cash balance | $45,059.70 | $46,759.74 | **+$1,700.04** |
+| Inventory value | $4,940.30 | $4,338.70 | −$601.60 |
+| Total assets | $50,000.00 | $51,098.44 | +$1,098.44 |
 
-Beneath those figures the agents wrote 71 transactions: **39 sales lines**
-totalling **$4,323.40** across **17 distinct catalog items**, and **32 supplier
-restock orders** totalling **$2,793.61** — a **35.4% net margin** on the
-period's trading. A further **14 restock orders were refused by a guard** before
-any money moved. The company ended more solvent than it began, which is the real
-test of whether the discount ladder and the cost-of-goods assumption are set
-sensibly.
+Beneath those figures the agents wrote 71 transactions: **43 sales lines**
+totalling **$3,916.36** across **16 distinct catalog items**, and **28 supplier
+restock orders** totalling **$2,216.32** — a **43.4% net margin** on the
+period's trading. A further **12 restock orders were refused by a guard** before
+any money moved.
 
 ### 4.2 Fulfilled orders
 
-**Request 14** (2025-04-09) is the most instructive success because it is a
-*partial* fulfilment. Two lines sold — 5,000 sheets of A4 paper at a 12% bulk
-discount ($220.00) and 500 sheets of cardstock at 5% ($71.25) — while the third
-was declined with a stated reason. The reply closes with a ledger-generated
-confirmation:
+**Request 20** (2025-04-17) is the clearest demonstration of the system working
+end to end, and is discussed further in section 4.8. The customer asked for
+5,000 flyers, 2,000 posters and 10,000 tickets. Flyers and posters sold at their
+full requested quantities for $660.00 and $450.00; tickets were declined because
+Beaver's Choice does not sell them. The reply's total, $1,110.00, equals the
+ledger exactly:
 
 ```
 Confirmed order
-  - 500 x Cardstock — $71.25 (5% bulk discount)
-  - 5000 x A4 paper — $220.00 (12% bulk discount)
-  Order total: $291.25
+  - 2000 x Poster paper — $450.00 (10% bulk discount)
+  - 5000 x Flyers — $660.00 (12% bulk discount)
+  Order total: $1,110.00
 ```
 
-**Request 17** (2025-04-14) sold two of five lines at $47.50 each and declined
-three, each with its own reason. This request is worth tracking: it exposed two
-of the three defects described below, and in this run its customer-facing totals
-match the ledger exactly.
+**Request 3** (2025-04-04) shows the same discipline on a subtler case: 10,000
+sheets of A4 paper sold at a 15% discount and 500 reams of printer paper at 5%,
+while *"A3 paper"* was declined — *"not part of our inventory"* — because the
+company does not stock that size and the system will not quietly substitute A4.
 
-**Request 20** (2025-04-17) closed the period with three lines totalling
-$1,365.00 at the 10–15% tiers.
+**Request 14** (2025-04-09) is a partial fulfilment: two lines sold, one declined
+with a stated reason, and a ledger-generated confirmation closing the message.
 
 A request's cash delta is *net*: sales minus any restock bought to serve it.
 
 ### 4.3 Declined orders
 
-Three requests were declined outright, and each reason traces to a specific code
+Two requests were declined outright, and each reason traces to a specific code
 guard rather than a model judgement:
 
-- **Request 15** — *"A4 white paper: could not be fulfilled because not enough
-  stock on hand. A3 colored paper: could not be fulfilled because not enough
-  stock on hand. cardboard for signage: could not be fulfilled because the item
-  is not one we carry."* The first two are the `_restock` delivery-deadline
-  guard; the third is `_resolve_item_name` correctly refusing to force a match
-  onto a real product.
+- **Request 15** — a large shortfall on A4 white paper and on A3 colored paper,
+  neither restockable before the 15 April deadline, plus *"cardboard for
+  signage"*, which the catalog does not carry. The first two are the `_restock`
+  delivery-deadline guard; the third is `_resolve_item_name` refusing to force a
+  match onto a real product.
 - **Request 19** — three lines critically short, none restockable before the
   20 April deadline.
-- **Request 13** — cardstock short, restock arriving after the deadline.
+
+A further nine requests declined at least one line while fulfilling others.
 
 ### 4.4 Strengths
 
-1. **Quote and ledger cannot diverge.** All 39 recorded sales match the price
+1. **The customer story and the ledger agree.** Every cash delta reconciles with
+   its slice of the transaction ledger, and every *Confirmed order* total equals
+   both its own line items and the sales recorded (`audit_reconciliation.py`).
+2. **Quote and ledger cannot diverge.** All 43 recorded sales match the price
    the customer was quoted (`audit_prices.py`).
-2. **Every price a customer sees is backed by a recorded sale**
+3. **Every price a customer sees is backed by a recorded sale**
    (`audit_replies.py`), enforced by code rather than by instruction.
-3. **No internal vocabulary reaches customers**, verified across all 20 replies.
-4. **The system refuses rather than overselling.** No transaction was written
+4. **No item is ever substituted for the one requested.** Terms the catalog does
+   not carry are refused before any similarity scoring.
+5. **No internal vocabulary reaches customers**, verified across all 20 replies.
+6. **The system refuses rather than overselling.** No transaction was written
    for stock that did not exist.
-5. **Refusals are specific and actionable** — units short, supplier delivery
+7. **Refusals are specific and actionable** — units short, supplier delivery
    against the deadline, or an item not carried.
-6. **Partial fulfilment works.** The system sells what it can and declines the
-   rest in one coherent reply.
-7. **Trading was profitable and solvent.** Cash never approached the $5,000
-   reserve; the period closed $1,529.79 up.
-8. **Zero failures.** No request hit the exception fallback.
+8. **Trading was profitable and solvent.** Cash never approached the $5,000
+   reserve; the period closed $1,700.04 up at a 43.4% margin.
+9. **Zero failures.** No request hit the exception fallback.
 
 ### 4.5 First defect: the ledger trusted the model
 
@@ -321,52 +340,94 @@ rewrites any surviving all-capitals token before the message leaves
 
 ### 4.7 Third defect: the reply was priced by the model, not the ledger
 
-Fixing the ledger did not fix the customer. In the run after 4.5, request 17's
-reply told the customer *"$237.50 … $237.50 … total $475.00"* while the ledger,
-correctly, charged **$95.00**. The trace shows exactly what happened:
-`calculate_quote` returned $47.50 for each line; the model corrupted it to
-$237.50 on the hop to `sales_agent`; `record_sale`'s guard caught it and charged
-$47.50 — and the orchestrator then wrote the *corrupted* figure into the reply.
+Fixing the ledger did not fix the customer. In a later run, request 17's reply
+told the customer *"$237.50 … $237.50 … total $475.00"* while the ledger,
+correctly, charged **$95.00**. `calculate_quote` had returned $47.50 per line;
+the model corrupted it on the hop to `sales_agent`; `record_sale`'s guard caught
+it and charged correctly — and the orchestrator then wrote the *corrupted*
+figure into the reply. The guard had protected the ledger and left the
+customer-facing message exposed, and `audit_prices.py` reported clean because it
+only ever checked the ledger.
 
-The guard had protected the ledger and left the customer-facing message exposed.
-`audit_prices.py` reported clean because it only ever checked the ledger.
+`handle_customer_request` now marks the ledger position before the run, reads
+back exactly the sales that run produced, replaces any money figure in the prose
+that does not match one of them with an em dash, and appends an itemised
+*Confirmed order* block generated from the ledger. In this run that guard
+intervened on two replies (#6 and #12), each time removing a model-computed
+total that disagreed with the ledger.
 
-The fix makes money in the reply come from the ledger too.
-`handle_customer_request` marks the ledger position before the run, reads back
-exactly the sales that run produced, replaces any money figure in the prose that
-does not match one of them with an em dash, and appends an itemised
-*Confirmed order* block generated from the ledger. Correct figures pass through
-untouched; a wrong one is removed. `audit_replies.py` was extended to verify the
-property, and reports zero unbacked prices across all 20 replies.
+### 4.8 Fourth defect: fuzzy matching sold products nobody ordered
 
-In this run the guard intervened once, in request 8, where the model's combined
-total was wrong while all four line prices were right: the bad total was removed
-and the ledger's `$653.00` shown instead.
+The most serious defect was found in review, and it is the reason for the
+resolver described in section 1.5.
 
-**The pattern across all three defects.** Each was caused by trusting the model
-to carry a value faithfully across a hop, and each was fixed by moving the
-guarantee into code at the point of use. Stated once: *a value that must be
-correct should be computed where it is used, not passed between agents.* The
-architecture in section 1.4 came from the same realisation.
+`_resolve_item_name` ended in a `difflib` fallback with a 0.60 similarity
+cutoff. In request 20 a customer asked for 10,000 **tickets**. Beaver's Choice
+does not sell tickets — but *"tickets"* scores **0.632** against *"sticky
+notes"*, over the cutoff. The system resolved it, sold 10,000 sticky notes, and
+billed the customer $255 for a product they had never mentioned. The reply
+called the line "Tickets" while the ledger said "Sticky notes".
 
-### 4.8 Remaining weaknesses
+Auditing the full corpus of 74 item phrasings the agents had used across all
+runs showed this was not isolated. The 0.60 cutoff was also mapping:
 
-1. **The prose and the ledger block can disagree in tone.** When the guard fires,
-   the customer sees an em dash mid-sentence followed by a correct summary. It is
-   never wrong, but it is not elegant — the real fix is 5.2.
-2. **Replenishment is purely reactive.** Stock is only ordered once a customer
-   has asked for it, by which point the supplier lead time (4 days over 100
-   units, 7 days over 1,000) frequently exceeds the deadline. Inventory value
-   *fell* over the period despite 32 restock orders, and 14 further restocks were
-   refused on timing. This accounts for every outright decline.
-3. **Stock is occasionally bought for an order that is then declined**, because
-   the restock decision is made per line before the orchestrator knows whether
-   the order as a whole will proceed.
+| the customer said | they were sold |
+|---|---|
+| A4 printing paper | **Wrapping paper** |
+| A4 white printer paper | **Glitter paper** |
+| printer paper | **Poster paper** |
+| A4 size printer paper | **220 gsm poster paper** |
+| decorative washi tape | **Decorative paper** |
+| tickets | **Sticky notes** |
+
+A separate case survived even at a raised cutoff: *"A3 paper"* scores **0.875**
+against *"A4 paper"*, and request 3 asks for 5,000 sheets of A3. Swapping one
+named paper size for another is a substitution, not a spelling correction.
+
+The resolver was rebuilt as the ordered pipeline in section 1.5: a word-level
+blocklist ahead of any scoring, a curated synonym table matched both exactly and
+by containment, a cutoff raised to 0.82, and a rule that fuzzy matching may never
+cross a paper-size boundary. Across the 74-phrase corpus, 70 now resolve and the
+four rejections — tickets, balloons, cardboard for signage, A3 paper — are all
+genuinely not carried.
+
+`audit_reconciliation.py` was written to make this class of failure visible
+rather than merely fixed. It partitions the ledger per request by walking prefix
+sums against each row's cash balance, then checks that the cash delta equals
+sales minus restocks for that slice, that each *Confirmed order* total equals
+both its line items and the ledger, and that no `record_sale` call resolved to a
+term the catalog does not carry. Run against the pre-fix log it flags exactly
+one item — `tickets` — and nothing else.
+
+**The pattern across all four defects.** Each was caused by a component quietly
+substituting its own judgement for a fact it should have looked up: a price
+carried in the model's memory, a status token copied into prose, a total
+recalculated from recollection, a product name guessed by string similarity.
+Each was fixed by moving the guarantee into code at the point of use. Stated
+once: *a value that must be correct should be computed where it is used, not
+passed between agents — and where no correct value exists, the system must
+refuse rather than approximate.*
+
+### 4.9 Remaining weaknesses
+
+1. **The prose and the ledger block can disagree in tone.** When the pricing
+   guard fires, the customer sees an em dash mid-sentence followed by a correct
+   summary. It is never wrong, but it is not elegant — the real fix is 5.2.
+2. **The synonym table is curated from observed traffic.** `CATALOG_ALIASES` was
+   built from wording that actually appeared in requests. A customer using an
+   unanticipated synonym will be told the item is not carried — a safe failure,
+   but a lost sale. Section 5.2 addresses this.
+3. **Replenishment is purely reactive.** Stock is only ordered once a customer
+   has asked for it, by which point the supplier lead time frequently exceeds
+   the deadline. Inventory value fell over the period despite 28 restock orders,
+   and 12 further restocks were refused on timing.
 4. **Two copies of the pricing formula.** `calculate_quote` and `record_sale`
    each compute the line total independently. They agree today and
    `audit_prices.py` proves it, but a change to one without the other would
    silently reintroduce 4.5.
-5. **Cost and latency.** Four agents and several LLM calls per request meant
+5. **Quantities still pass through the model.** `record_sale` re-derives the
+   price but takes the quantity as given. Section 5.3 proposes closing that gap.
+6. **Cost and latency.** Four agents and several LLM calls per request meant
    roughly 2–3 minutes per request, about 50 minutes for a full run.
 
 ---
@@ -377,50 +438,55 @@ architecture in section 1.4 came from the same realisation.
 
 `ensure_stock_available` only buys stock after a customer has asked for
 something we do not have — by which time the supplier lead time usually exceeds
-their deadline. All three outright declines and most partial ones trace to this.
+their deadline. Both outright declines and most partial ones trace to this.
 
 The starter data already contains what is needed: the `inventory` table carries
 `min_stock_level` per item, and `transactions` gives sales velocity. A scheduled
 reorder pass — run between requests, or as a fifth agent using the one remaining
 slot in the five-agent budget — could reorder any item whose projected stock at
-the end of its lead time falls below `min_stock_level`. Because the declines
-were caused by *timing* rather than by price or solvency, this alone would
-convert declined revenue into sales without touching the pricing logic, and
-would largely dissolve weakness 4.8.3 as a side effect.
+the end of its lead time falls below `min_stock_level`. Because the declines were
+caused by *timing* rather than by price or solvency, this alone would convert
+declined revenue into sales without touching the pricing logic.
 
-### 5.2 Compose the whole reply from a template, not just the prices
+### 5.2 Compose the whole reply from a template, and resolve items before the agents run
 
-Section 4.7 fixed pricing by generating it from the ledger, but the surrounding
-prose is still authored by the model, which is why a corrected reply can read
-awkwardly. The same treatment should extend to the whole message.
+Two halves of the same idea: take the remaining judgement calls out of the
+model's hands at both edges of the pipeline.
 
-`handle_customer_request` would assemble the reply from a structured result — a
-list of `(item, quantity, verdict, total, discount_rate, availability_date,
-decline_reason)` records rendered through a Python template — and assert that
-the number of verdicts returned equals the number of line items requested,
-re-querying the inventory agent for any line missing one. The model would still
-do the language understanding at the front of the pipeline and the judgement in
-the middle; it would simply stop being the last thing between the data and the
-customer. Every defect in 4.5–4.7 would then be structurally impossible rather
-than caught after the fact.
+At the **front**, item resolution should happen once, deterministically, before
+any agent runs — parsing the request into `(item, quantity, required_by)` tuples
+with `_resolve_item_name` and surfacing unresolved items immediately. That would
+also let an unrecognised synonym be logged for review and added to
+`CATALOG_ALIASES`, turning weakness 4.9.2 into a feedback loop rather than a
+silent lost sale.
 
-### 5.3 Factor the pricing formula into one shared function, and make it margin-aware
+At the **back**, section 4.7 fixed pricing by generating it from the ledger, but
+the surrounding prose is still authored by the model, which is why a corrected
+reply can read awkwardly. `handle_customer_request` should assemble the whole
+message from a structured result — `(item, requested_qty, fulfilled_qty, total,
+discount_rate, availability_date, decline_reason)` — rendered through a Python
+template, asserting that every requested line has a verdict. The model would
+still do the language understanding and the judgement in the middle; it would
+simply stop being the last thing between the data and the customer.
 
-Two improvements to the same code. First, weakness 4.8.4: extract the shared
-computation into a single `_line_total(item_name, quantity)` used by both
-`calculate_quote` and `record_sale`, so quote and ledger are identical by
-construction rather than by audit.
+### 5.3 Make sales structured and quantity-safe, and share the pricing formula
 
-Second, `BULK_DISCOUNT_TIERS` is a flat function of quantity, applied identically
-to a $0.02 napkin and a $2.50 roll of banner paper. At the assumed 50% cost of
-goods a 15% discount is comfortably absorbed, but the ladder has no knowledge of
-that and would keep discounting if `SUPPLIER_COST_RATIO` were raised or per-item
-supplier costs introduced. A margin-aware `_line_total` would compute the implied
-margin after discount and cap it at whatever keeps the line above a floor — say
-20% gross. The observed 35.4% margin is healthy by construction rather than by
-control; nothing currently prevents an unprofitable quote. The floor would also
-let the company offer *deeper* discounts on genuinely high-margin items to win
-larger orders.
+`record_sale` re-derives the price but accepts the quantity it is handed, one
+line at a time. Replacing the free-form handoff with a single bulk sales tool
+taking structured JSON — the whole basket in one call, each entry carrying the
+originally requested quantity — would let the tool assert that what is being sold
+matches what was quoted, and would remove the per-line drift where a 5,000-unit
+request can be recorded as 2,000.
+
+The same change should extract the shared computation into a single
+`_line_total(item_name, quantity)` used by both `calculate_quote` and
+`record_sale`, so quote and ledger are identical by construction rather than by
+audit (weakness 4.9.4). While there, the discount ladder could become
+margin-aware: `BULK_DISCOUNT_TIERS` is currently a flat function of quantity,
+applied identically to a $0.02 napkin and a $2.50 roll of banner paper, and
+nothing prevents an unprofitable quote if `SUPPLIER_COST_RATIO` were raised. A
+floor of, say, 20% gross would make the observed 43.4% margin a controlled
+outcome rather than a fortunate one.
 
 ---
 
@@ -435,6 +501,7 @@ larger orders.
 
 Supporting evidence, not part of the required submission: `run_full.log` (full
 agent trace), the four verification scripts (`analyze_results.py`,
-`audit_prices.py`, `audit_replies.py`), and two earlier runs kept as
-before-pictures — `run_prev_with_leak.log` for section 4.6 and
-`run_prev_reply_price_bug.log` for section 4.7, with their `test_results` CSVs.
+`audit_prices.py`, `audit_replies.py`, `audit_reconciliation.py`), and
+`run_prev_bad_resolver.log` / `test_results_prev_bad_resolver.csv` — the run in
+which request 20 sold sticky notes against a ticket order, kept as the
+before-picture for section 4.8.
