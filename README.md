@@ -22,10 +22,10 @@ cd ~/Desktop/beavers-choice-project && .venv/bin/python project_starter.py
 
 20/20 requests processed with no errors. 18 changed the cash balance, 18
 recorded at least one sale, 2 were declined outright with specific reasons.
-Cash $45,059.70 → $46,759.74 (+$1,700.04) at a 43.4% net margin.
+Cash $45,059.70 → $46,735.99 (+$1,676.29) at a 43.1% net margin.
 
 Four properties are enforced in code and verified over the whole run: every
-recorded sale matches its quote (0/43 mismatches), every price shown to a
+recorded sale matches its quote (0/42 mismatches), every price shown to a
 customer is backed by a recorded sale (0/20 unbacked), every cash delta
 reconciles with the ledger (0/20 mismatches), and no item is ever substituted
 for the one the customer asked for.

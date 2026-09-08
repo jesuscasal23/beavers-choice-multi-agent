@@ -2,180 +2,236 @@ request_id,request_date,cash_balance,inventory_value,response
 1,2025-04-01,45123.399999999994,4875.3,"Dear Customer,
 
 Thank you for your order! Here are the details of your requested paper supplies:
+- A4 glossy paper (200 sheets): $39.20 (2% discount applied)
+- Heavy cardstock (white) (100 sheets): $14.70 (2% discount applied)
+- Colored paper (assorted colors) (100 sheets): $9.80 (2% discount applied)
 
-- A4 glossy paper (200 sheets): Confirmed for a total of $39.20 with a 2% discount applied for ordering 200 units.
-- Heavy cardstock (white) (100 sheets): Confirmed for a total of $14.70 with a 2% discount applied for ordering 100 units.
-- Colored paper (assorted colors) (100 sheets): Confirmed for a total of $9.80 with a 2% discount applied for ordering 100 units.
-
-All items are in stock and will be shipped by your requested date of April 15, 2025.
-
-The combined total for your order is $63.70.
+Your total order amount is $63.70.
+All items are confirmed and will be shipped to you by your requested date of April 15, 2025.
 
 Thank you for choosing Beaver's Choice Paper Company!
 Best regards,
 Customer Service Team
 
 Confirmed order
-  - 200 x Glossy paper — $39.20 (2% bulk discount)
   - 100 x Colored paper — $9.80 (2% bulk discount)
   - 100 x Cardstock — $14.70 (2% bulk discount)
+  - 200 x Glossy paper — $39.20 (2% bulk discount)
   Order total: $63.70"
 2,2025-04-03,45151.84999999999,4875.3,"Dear Customer,
 
 Thank you for your order! Here are the details:
-- Colorful Poster Paper: 500 sheets
-  - Total Price: $118.75
-  - Discount Rate: 5% (applied for ordering 500 units)
-  - Expected Availability Date: April 7, 2025
-- Streamers: 300 rolls
-  - Total Price: $14.70
-  - Discount Rate: 2% (applied for ordering 300 units)
-  - Expected Availability Date: April 7, 2025
-- Balloons: 200
-  - Reason: This item is not available in our inventory.
+- Colorful Poster Paper: 500 sheets, Total Price: $118.75 (5% discount applied for ordering 500 units)
+- Streamers: 300 rolls, Total Price: $14.70 (2% discount applied for ordering 300 units)
+- Combined Order Total: $133.45
 
-The combined total for your order is $133.45.
+Unfortunately, we could not fulfill your request for 200 balloons as they are not available in our catalog.
+Your order for the colorful poster paper and streamers will be delivered by April 15, 2025.
 
-We appreciate your business and look forward to serving you again!
-Best regards,
-Beaver's Choice Paper Company
+Thank you for choosing Beaver's Choice Paper Company!
 
 Confirmed order
   - 300 x Party streamers — $14.70 (2% bulk discount)
   - 500 x Poster paper — $118.75 (5% bulk discount)
   Order total: $133.45"
-3,2025-04-04,45216.049999999996,5104.9,"Dear Customer,
+3,2025-04-04,45216.05,5104.9,"Dear Customer,
 
 Thank you for your order. Here are the details:
-- A4 Paper: 10,000 sheets - Total Price: $425.00 (15% discount applied for ordering 10,000 sheets)
-- Printer Paper: 500 reams - Total Price: $19.00 (5% discount applied for ordering 500 reams)
-Both items will be delivered by April 15, 2025.
+- A4 paper: 10,000 sheets - Total: $425.00 (15% discount applied for ordering 10,000 units)
+- Printer paper: 500 reams - Total: $19.00 (5% discount applied for ordering 500 units)
 
-Unfortunately, we could not fulfill your request for A3 paper as it is not part of our inventory.
+Both items are confirmed and will be delivered by April 15, 2025.
+
+Unfortunately, we could not fulfill your request for A3 paper (5,000 sheets) as it is not part of our inventory.
 
 Thank you for choosing Beaver's Choice Paper Company!
 Best regards,
 Customer Service Team
 
 Confirmed order
-  - 10000 x A4 paper — $425.00 (15% bulk discount)
   - 500 x Standard copy paper — $19.00 (5% bulk discount)
+  - 10000 x A4 paper — $425.00 (15% bulk discount)
   Order total: $444.00"
 4,2025-04-05,45298.95,5018.599999999999,"Dear Customer,
 
 Thank you for your order! Here are the details:
 - 500 sheets of high-quality recycled cardstock: $71.25 (5% discount applied for ordering 500 sheets)
 - 250 sheets of A4 size printer paper: $12.25 (2% discount applied for ordering 250 sheets)
-
-Your total order amount is $83.50.
-Both items are confirmed and will be delivered by April 15, 2025.
+Your order has been confirmed and will be delivered by April 15, 2025.
+Total order amount: $83.50
 
 Thank you for choosing Beaver's Choice Paper Company!
 
 Confirmed order
-  - 500 x Cardstock — $71.25 (5% bulk discount)
   - 250 x A4 paper — $12.25 (2% bulk discount)
+  - 500 x Cardstock — $71.25 (5% bulk discount)
   Order total: $83.50"
-5,2025-04-05,45318.79999999999,5040.499999999999,"Dear Customer,
+5,2025-04-05,45318.799999999996,5040.499999999999,"Thank you for your order! Here are the details:
+300 sheets of cardstock in various colors: $44.10 (2% discount for ordering 300 units)
+200 rolls of decorative washi tape: $39.20 (2% discount for ordering 200 units)
+500 sheets of 8.5""x11"" colored paper: could not be fulfilled due to insufficient stock.
+The total for your fulfilled items is: $83.30.
+
+Confirmed order
+  - 200 x Decorative adhesive tape (washi tape) — $39.20 (2% bulk discount)
+  - 300 x Cardstock — $44.10 (2% bulk discount)
+  Order total: $83.30"
+6,2025-04-06,45359.69,5022.049999999999,"Dear Customer,
 
 Thank you for your order! Here are the details:
-- 300 sheets of cardstock in various colors: Total price: $44.10, Discount rate: 2% (for ordering 300 units)
-- 200 sheets of decorative washi tape: Total price: $39.20, Discount rate: 2% (for ordering 200 units)
-- 8.5x11 colored paper: could not be fulfilled due to not enough stock on hand.
+- Colorful Construction Paper: 500 sheets - Total Price: $33.25 (5% discount applied for ordering 500 sheets)
+- White Printer Paper: 300 sheets - Total Price: $11.76 (2% discount applied for ordering 300 sheets)
+- Cardstock: 200 sheets - Total Price: $29.40 (2% discount applied for ordering 200 sheets)
 
-The combined total for your order is: $83.30.
+Your total order amount is $74.41.
+All items are confirmed and will be delivered by April 15, 2025.
+
+Thank you for choosing Beaver's Choice Paper Company!
+Best regards,
+Customer Service Team
+
+Confirmed order
+  - 500 x Construction paper — $33.25 (5% bulk discount)
+  - 200 x Cardstock — $29.40 (2% bulk discount)
+  - 300 x Standard copy paper — $11.76 (2% bulk discount)
+  Order total: $74.41"
+7,2025-04-07,45661.12,4761.2,"Dear Customer,
+
+Thank you for your order! Here are the details of your request:
+
+- 1000 sheets of Matte A3 Paper: Total $162.00 (10% discount applied)
+- 300 Poster Boards (24"" x 36""): Total $294.00 (2% discount applied)
+
+The combined total for your order is $456.00.
+
+Unfortunately, we could not fulfill the following items:
+- 500 sheets of Glossy A4 Paper: Could not be fulfilled due to insufficient stock.
+- 200 sheets of Heavyweight Cardstock: Could not be fulfilled due to insufficient stock.
+
 We appreciate your understanding and look forward to serving you again!
 
 Best regards,
 Beaver's Choice Paper Company
 
 Confirmed order
-  - 200 x Decorative adhesive tape (washi tape) — $39.20 (2% bulk discount)
-  - 300 x Cardstock — $44.10 (2% bulk discount)
-  Order total: $83.30"
-6,2025-04-06,45359.689999999995,5022.049999999999,"Dear Customer,
-
-Thank you for your order! Here are the details:
-- Colorful construction paper: 500 sheets, total price $33.25, 5% discount applied for ordering 500 sheets.
-- White printer paper: 300 sheets, total price $11.76, 2% discount applied for ordering 300 sheets.
-- Cardstock: 200 sheets, total price —, 2% discount applied for ordering 200 sheets.
-
-The combined order total is $74.41.
-All items will be delivered by April 15, 2025.
-
-Thank you for choosing Beaver's Choice Paper Company!
-
-Confirmed order
-  - 300 x Standard copy paper — $11.76 (2% bulk discount)
-  - 500 x Construction paper — $33.25 (5% bulk discount)
-  - 200 x Cardstock — $29.40 (2% bulk discount)
-  Order total: $74.41"
-7,2025-04-07,45714.270000000004,4706.2,"Dear Customer,
-
-Thank you for your order! Here are the details of your paper supplies:
-- Glossy A4 paper: 500 sheets, total $23.75 (5% discount applied)
-- Matte A3 paper: 1000 sheets, total $162.00 (10% discount applied)
-- Poster boards (24"" x 36""): 300 units, total $294.00 (2% discount applied)
-- Heavyweight cardstock: 200 sheets, total $29.40 (2% discount applied)
-
-The combined total for your order is $509.15.
-All items are confirmed and will be delivered by April 15, 2025.
-
-Thank you for choosing Beaver's Choice Paper Company!
-Best regards,
-Customer Service Team
-
-Confirmed order
-  - 500 x A4 paper — $23.75 (5% bulk discount)
-  - 1000 x Matte paper — $162.00 (10% bulk discount)
-  - 200 x Cardstock — $29.40 (2% bulk discount)
   - 300 x Large poster paper (24x36 inches) — $294.00 (2% bulk discount)
-  Order total: $509.15"
-8,2025-04-07,46004.37,4637.0,"Dear Customer,
-
-Thank you for your order! Here are the details of your paper supplies:
-- A4 Matte Paper: 1000 units, Total: $162.00 (10% discount applied)
-- A4 Glossy Paper: 500 units, Total: $95.00 (5% discount applied)
-- A4 Recycled Paper: 3000 units, Total: $216.00 (10% discount applied)
-- A5 Colored Paper: 2000 units, Total: $180.00 (10% discount applied)
-
-The combined total for your order is $653.00.
-All items are confirmed and will be delivered by April 15, 2025.
-
-Thank you for choosing Beaver's Choice Paper Company!
-Best regards,
-Customer Service Team
-
-Confirmed order
-  - 3000 x Recycled paper — $216.00 (10% bulk discount)
-  - 2000 x Colored paper — $180.00 (10% bulk discount)
   - 1000 x Matte paper — $162.00 (10% bulk discount)
-  - 500 x Glossy paper — $95.00 (5% bulk discount)
-  Order total: $653.00"
-9,2025-04-07,46032.27,4615.0,"Dear Customer,
+  Order total: $456.00"
+8,2025-04-07,45951.22,4691.999999999999,"Dear Customer,
 
 Thank you for your order! Here are the details:
-- A4 white printer paper (200 sheets): $9.80 (2% discount applied)
-- A3 glossy paper (100 sheets): $19.60 (2% discount applied)
-- 100% recycled kraft paper envelopes (50 packets): $5.00 (no discount)
+- A4 glossy paper (500 sheets): $95.00 (5% discount applied for ordering 500 units), available by April 15, 2025.
+- A4 matte paper (1000 sheets): $162.00 (10% discount applied for ordering 1000 units), available by April 15, 2025.
+- A5 colored paper (2000 sheets): $180.00 (10% discount applied for ordering 2000 units), available by April 15, 2025.
+- A4 recycled paper (3000 sheets): $216.00 (10% discount applied for ordering 3000 units), available by April 15, 2025.
 
-Your total order amount is $34.40.
+The total for your order is $653.00.
+
+We appreciate your business and look forward to serving you again!
+
+Best regards,
+Beaver's Choice Paper Company
+
+Confirmed order
+  - 500 x Glossy paper — $95.00 (5% bulk discount)
+  - 1000 x Matte paper — $162.00 (10% bulk discount)
+  - 2000 x Colored paper — $180.00 (10% bulk discount)
+  - 3000 x Recycled paper — $216.00 (10% bulk discount)
+  Order total: $653.00"
+9,2025-04-07,45979.12,4670.0,"Dear Customer,
+
+Thank you for your order! Here are the details:
+- A4 White Printer Paper (200 sheets): $9.80 (2% discount applied for ordering 200 units)
+- A3 Glossy Paper (100 sheets): $19.60 (2% discount applied for ordering 100 units)
+- 100% Recycled Kraft Paper Envelopes (50 packets): $5.00 (no discount)
+
+The total for your order is $34.40.
 All items are confirmed and will be delivered by April 10, 2025.
 
 Thank you for choosing Beaver's Choice Paper Company!
+
+Confirmed order
+  - 200 x A4 paper — $9.80 (2% bulk discount)
+  - 50 x Kraft paper — $5.00
+  - 100 x Glossy paper — $19.60 (2% bulk discount)
+  Order total: $34.40"
+13,2025-04-08,46032.270000000004,4615.0,"Dear Customer,
+
+Thank you for your order! Here are the details:
+- A4 printing paper: 500 sheets, total price: $23.75, discount applied: 5% for ordering 500 units, expected availability: April 10, 2025.
+- Cardstock: 200 sheets, total price: $29.40, discount applied: 2% for ordering 200 units, expected availability: April 10, 2025.
+
+Your combined order total is: $53.15.
+
+We appreciate your business and look forward to serving you again!
+Best regards,
+Beaver's Choice Paper Company
+
+Confirmed order
+  - 200 x Cardstock — $29.40 (2% bulk discount)
+  - 500 x A4 paper — $23.75 (5% bulk discount)
+  Order total: $53.15"
+12,2025-04-08,46054.12,4610.5,"Dear Customer,
+
+Thank you for your order! Here are the details:
+- Colorful Cardstock: 200 sheets, Total: $29.40 (2% discount applied for ordering 200 units)
+- Standard Printer Paper: 500 sheets, Total: $19.00 (5% discount applied for ordering 500 units)
+- Paper Napkins: 100 units, Total: $1.96 (2% discount applied for ordering 100 units)
+
+All items have been confirmed and will be delivered by April 15, 2025.
+The combined total for your order is $50.36.
+
+Thank you for choosing Beaver's Choice Paper Company!
 Best regards,
 Customer Service Team
 
 Confirmed order
-  - 200 x A4 paper — $9.80 (2% bulk discount)
-  - 100 x Glossy paper — $19.60 (2% bulk discount)
-  - 50 x Kraft paper — $5.00
-  Order total: $34.40"
-13,2025-04-08,46056.02,4590.0,"Dear Customer,
+  - 200 x Cardstock — $29.40 (2% bulk discount)
+  - 500 x Standard copy paper — $19.00 (5% bulk discount)
+  - 100 x Paper napkins — $1.96 (2% bulk discount)
+  Order total: $50.36"
+10,2025-04-08,46094.14,4663.65,"Dear Customer,
 
-Thank you for your order. We are pleased to confirm your order of 500 sheets of A4 printing paper for a total price of $23.75 after applying a 5% bulk discount.
+Thank you for your order! Here are the details:
+- High-Quality Glossy Paper: 500 sheets, Total Price: $95.00 (5% discount for ordering 500 units), expected availability by April 15, 2025.
+- Sturdy Cardstock: 300 sheets, Total Price: $44.10 (2% discount for ordering 300 units), expected availability by April 15, 2025.
 
-Unfortunately, we could not fulfill your request for cardstock as it is not available due to insufficient stock and cannot be restocked in time.
+The combined total for your order is $139.10.
+
+Thank you for choosing Beaver's Choice Paper Company! If you have any further questions, feel free to reach out.
+Best regards,
+Customer Service Team
+
+Confirmed order
+  - 500 x Glossy paper — $95.00 (5% bulk discount)
+  - 300 x Cardstock — $44.10 (2% bulk discount)
+  Order total: $139.10"
+11,2025-04-08,46196.11,4642.05,"Dear Customer,
+
+Thank you for your order. Here are the details:
+- 500 sheets of A3 glossy paper: $95.00 (5% discount applied for ordering 500 units)
+- 300 sheets of A4 matte paper: $52.92 (2% discount applied for ordering 300 units)
+
+Your total order amount is: $147.92
+
+Both items are confirmed and will be delivered by April 15, 2025.
+
+Thank you for choosing Beaver's Choice Paper Company!
+
+Confirmed order
+  - 500 x Glossy paper — $95.00 (5% bulk discount)
+  - 300 x Matte paper — $52.92 (2% bulk discount)
+  Order total: $147.92"
+14,2025-04-09,46224.84,4652.099999999999,"Dear Customer,
+
+Thank you for your order request. Here are the details:
+
+Fulfilled Item:
+- 500 sheets of cardstock: Total price is $71.25 with a 5% bulk discount applied. This order has been confirmed and will be available by April 13, 2025.
+
+Declined Items:
+- 5,000 sheets of A4 paper: Unfortunately, we could not fulfill this order as we only have 3,914 units in stock, which is insufficient to meet your request.
+- 2,000 sheets of poster paper in various colors: This item is also not available as we only have 250 units on hand, leading to a shortfall of 1,750 units.
 
 We appreciate your understanding and look forward to serving you in the future.
 
@@ -183,168 +239,100 @@ Best regards,
 Beaver's Choice Paper Company
 
 Confirmed order
-  - 500 x A4 paper — $23.75 (5% bulk discount)
-  Order total: $23.75"
-12,2025-04-08,46077.869999999995,4585.5,"Dear Customer,
-
-Thank you for your order! Here are the details:
-- Colorful Cardstock (200 sheets): — (2% discount applied)
-- Standard Printer Paper (500 sheets): — (5% discount applied)
-- Paper Napkins (100): $1.96 (2% discount applied)
-
-Your total order amount is: $50.36.
-All items will be delivered by April 15, 2025.
-
-Thank you for choosing Beaver's Choice Paper Company!
-
-Confirmed order
-  - 500 x Standard copy paper — $19.00 (5% bulk discount)
-  - 200 x Cardstock — $29.40 (2% bulk discount)
-  - 100 x Paper napkins — $1.96 (2% bulk discount)
-  Order total: $50.36"
-10,2025-04-08,46117.89,4638.65,"Dear Customer,
-
-Thank you for your order! Here are the details:
-- High-Quality Glossy Paper: 500 sheets
-  - Total Price: $95.00 (5% discount applied for ordering 500 units)
-  - Expected availability date: April 12, 2025
-- Sturdy Cardstock: 300 sheets
-  - Total Price: $44.10 (2% discount applied for ordering 300 units)
-  - Expected availability date: April 12, 2025
-
-The combined total for your order is $139.10.
-
-If you have any further questions or need assistance, feel free to reach out.
-Best regards,
-Beaver's Choice Paper Company
-
-Confirmed order
-  - 500 x Glossy paper — $95.00 (5% bulk discount)
-  - 300 x Cardstock — $44.10 (2% bulk discount)
-  Order total: $139.10"
-11,2025-04-08,46219.86,4617.05,"Dear Customer,
-
-Thank you for your order. Here are the details:
-- A3 glossy paper: 500 sheets, Total Price: $95.00 (5% discount applied for ordering 500 sheets)
-- A4 matte paper: 300 sheets, Total Price: $52.92 (2% discount applied for ordering 300 sheets)
-The total for your order is $147.92.
-
-Both items are confirmed and will be delivered by April 15, 2025.
-
-Thank you for choosing Beaver's Choice Paper Company!
-
-Confirmed order
-  - 300 x Matte paper — $52.92 (2% bulk discount)
-  - 500 x Glossy paper — $95.00 (5% bulk discount)
-  Order total: $147.92"
-14,2025-04-09,46248.590000000004,4627.099999999999,"Dear Customer,
-
-Thank you for your order request. Here are the details:
-- Cardstock: 500 sheets, total price $71.25, with a 5% discount applied for bulk order. This item is confirmed for delivery by April 15, 2025.
-- Poster paper in various colors: Unfortunately, this item is not available due to insufficient stock, and the delivery would arrive after your deadline.
-- A4 paper: Unfortunately, this item is also not available due to insufficient stock, and the delivery would arrive after your deadline.
-
-The total for your fulfilled order is $71.25.
-
-Thank you for choosing Beaver's Choice Paper Company!
-Best regards,
-Customer Service Team
-
-Confirmed order
   - 500 x Cardstock — $71.25 (5% bulk discount)
   Order total: $71.25"
-15,2025-04-12,46248.590000000004,4627.099999999999,"Dear Customer,
+15,2025-04-12,46224.84,4652.099999999999,"Dear Customer,
 
 Thank you for your order request. Unfortunately, we could not fulfill your order for the following items:
-- A4 white paper (10,000 sheets): Not available due to a shortfall of 6,586 units. We have only 3,414 sheets on hand, and a restock order would arrive after your required date.
-- A3 colored paper (5,000 sheets): Not available due to a shortfall of 4,344 units. We have only 656 sheets on hand, and the restock order was declined as it would arrive after your required date.
-- Cardboard for signage (500 reams): Not available as this item is not part of our inventory.
+- 10,000 sheets of A4 white paper: Not enough stock on hand (only 3914 units available) and restock would arrive after your deadline.
+- 5,000 sheets of A3 colored paper: Not enough stock on hand (only 656 units available) and restock would arrive after your deadline.
+- 500 reams of cardboard for signage: This item is not one we carry.
 
-We apologize for any inconvenience this may cause. If you have any alternative requests or need assistance with other products, please let us know.
+We apologize for any inconvenience this may cause. If you would like to adjust your order or explore alternative options, please let us know.
 
 Best regards,
 Beaver's Choice Paper Company"
-16,2025-04-13,46384.060000000005,4502.099999999999,"Thank you for your order! Here are the details:
-- A4 Printer Paper: 500 sheets, total price $23.75, 5% discount applied.
-- Colorful Construction Paper: 200 sheets, total price $13.72, 2% discount applied.
-- Poster Board: 100 sheets, total price $98.00, 2% discount applied.
-
-Your combined order total is $135.47.
-All items are confirmed and will be shipped to you by April 15, 2025.
+16,2025-04-13,46360.31,4527.099999999999,"Thank you for your order! Here are the details:
+- A4 printer paper: 500 sheets, total price $23.75, 5% discount applied.
+- Colorful construction paper: 200 sheets, total price $13.72, 2% discount applied.
+- Poster board: 100 sheets, total price $98.00, 2% discount applied.
+The combined total for your order is $135.47.
+All items will be shipped by April 15, 2025, ensuring timely delivery for your assembly event.
 
 Confirmed order
-  - 500 x A4 paper — $23.75 (5% bulk discount)
   - 100 x Large poster paper (24x36 inches) — $98.00 (2% bulk discount)
   - 200 x Construction paper — $13.72 (2% bulk discount)
+  - 500 x A4 paper — $23.75 (5% bulk discount)
   Order total: $135.47"
-17,2025-04-14,46524.06,4352.099999999999,"Dear Customer,
+17,2025-04-14,46500.31,4377.099999999999,"Dear Customer,
 
-Thank you for your order! Here are the details of your request:
+Thank you for your order. Here are the details:
+- A4 white printer paper: 1000 units - Total: $45.00 (10% discount applied)
+- A3 colored paper: 500 units - Total: $47.50 (5% discount applied)
+- Paper plates: 500 units - Total: $47.50 (5% discount applied)
 
-- 1000 sheets of A4 white printer paper: Total $45.00 (10% discount for ordering 1000 units)
-- 500 sheets of A3 colored paper: Total $47.50 (5% discount for ordering 500 units)
-- 500 paper plates: Total $47.50 (5% discount for ordering 500 units)
-
-Your total for the fulfilled items is: $140.00.
+Combined order total for fulfilled items: $140.00.
 
 Unfortunately, we could not fulfill the following items:
-- 2000 table napkins (white): not available due to insufficient stock and late delivery.
-- 1000 paper cups (biodegradable): not available due to insufficient stock and late delivery.
+- Table napkins (2000 units): Not available due to insufficient stock.
+- Paper cups (1000 units): Not available due to insufficient stock.
 
-We appreciate your understanding and look forward to serving you again!
+We appreciate your understanding and look forward to serving you again.
 
 Best regards,
 Beaver's Choice Paper Company
 
 Confirmed order
   - 500 x Colored paper — $47.50 (5% bulk discount)
-  - 1000 x A4 paper — $45.00 (10% bulk discount)
   - 500 x Paper plates — $47.50 (5% bulk discount)
+  - 1000 x A4 paper — $45.00 (10% bulk discount)
   Order total: $140.00"
-18,2025-04-14,46540.35999999999,4338.7,"Dear Customer,
+18,2025-04-14,46516.61,4363.7,"Dear Customer,
 
-Thank you for your order. Here are the details:
-- 200 sheets of colored paper in assorted colors: Confirmed at a total price of $19.60 (2% discount applied due to bulk order size).
+Thank you for your order request. Here are the details:
+- Colored paper in assorted colors: 200 sheets, total price $19.60 (2% bulk discount applied).
 
 Unfortunately, we could not fulfill the following items:
-- 1000 sheets of standard printing paper: Not available due to insufficient stock on hand.
-- 500 sheets of high-quality white cardstock: Not available due to insufficient stock on hand.
+- High-quality white cardstock: Not available due to insufficient stock and a delayed restock that would arrive after your required deadline.
+- Standard printing paper: Not available due to insufficient stock and a delayed restock that would arrive after your required deadline.
 
-We appreciate your understanding and look forward to serving you in the future.
+We appreciate your understanding and hope to serve you again in the future.
+
 Best regards,
 Beaver's Choice Paper Company
 
 Confirmed order
   - 200 x Colored paper — $19.60 (2% bulk discount)
   Order total: $19.60"
-19,2025-04-15,46540.35999999999,4338.7,"Dear Customer,
+19,2025-04-15,46516.61,4363.7,"Dear Customer,
 
 Thank you for your order request. Unfortunately, we could not fulfill your order for the following items:
-- A4 glossy paper: Requested 2000 sheets, but only 131 sheets are currently in stock. We could not restock in time as the order would arrive after your required date.
-- A3 matte paper: Requested 1500 sheets, but only 25 sheets are available. Similar to the A4 glossy paper, we could not restock in time.
-- Cardstock in assorted colors: Requested 1000 sheets, but only 189 sheets are available. Again, we could not restock in time.
+- 2000 sheets of A4 glossy paper: Not available due to a shortfall of 1869 units. We currently have only 131 units in stock, and a restock order could not be fulfilled in time.
+- 1500 sheets of A3 matte paper: Not available due to a shortfall of 1475 units. We currently have only 25 units in stock, and a restock order could not be fulfilled in time.
+- 1000 sheets of cardstock in assorted colors: Not available due to a shortfall of 811 units. We currently have only 189 units in stock, and a restock order could not be fulfilled in time.
 
-We apologize for the inconvenience and appreciate your understanding. If you would like to adjust your order or explore alternative options, please let us know.
+We recommend exploring alternative suppliers or adjusting your order quantities to fit our available stock.
+
+Thank you for your understanding.
 
 Best regards,
 Beaver's Choice Paper Company"
-20,2025-04-17,46759.73999999999,4338.7,"Dear Customer,
+20,2025-04-17,46735.99,4363.7,"Dear Customer,
 
 Thank you for your order! Here are the details:
-- **Flyers**: 5000 units - Total: $660.00 (12% discount applied for ordering 5000 units)
-- **Posters**: 2000 units - Total: $450.00 (10% discount applied for ordering 2000 units)
-
-Both items will be delivered by April 24, 2025, ensuring you have them in time for your concert.
+- Flyers: 5,000 units - Total: $660.00, Discount: 12% for ordering 5,000 units
+- Posters: 2,000 units - Total: $450.00, Discount: 10% for ordering 2,000 units
 
 Unfortunately, we could not fulfill your request for tickets as they are not available in our inventory.
 
-The total for your order is: $1110.00.
+The combined total for your order is: $1110.00.
 
-Thank you for choosing Beaver's Choice Paper Company!
+We appreciate your understanding and look forward to serving you again!
+
 Best regards,
-Customer Service Team
+Beaver's Choice Paper Company
 
 Confirmed order
-  - 2000 x Poster paper — $450.00 (10% bulk discount)
   - 5000 x Flyers — $660.00 (12% bulk discount)
+  - 2000 x Poster paper — $450.00 (10% bulk discount)
   Order total: $1,110.00"

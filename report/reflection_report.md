@@ -227,8 +227,8 @@ agree).
 | Requests that changed the cash balance | **18** | ≥ 3 |
 | Requests with at least one recorded sale | **18** | ≥ 3 |
 | Requests left entirely unfulfilled | **2** (#15, #19) | ≥ 1 |
-| Requests containing at least one declined line | 9 | — |
-| Sales priced differently from their quote | **0 / 43** | — |
+| Requests containing at least one declined line | 8 | — |
+| Sales priced differently from their quote | **0 / 42** | — |
 | Prices shown to a customer not backed by the ledger | **0 / 20** | — |
 | Cash deltas that fail to reconcile with the ledger | **0 / 20** | — |
 | Sales of an item the customer did not ask for | **0** | — |
@@ -237,14 +237,14 @@ agree).
 
 | Financial position | Start | End | Change |
 |---|---|---|---|
-| Cash balance | $45,059.70 | $46,759.74 | **+$1,700.04** |
-| Inventory value | $4,940.30 | $4,338.70 | −$601.60 |
-| Total assets | $50,000.00 | $51,098.44 | +$1,098.44 |
+| Cash balance | $45,059.70 | $46,735.99 | **+$1,676.29** |
+| Inventory value | $4,940.30 | $4,363.70 | −$576.60 |
+| Total assets | $50,000.00 | $51,099.69 | +$1,099.69 |
 
-Beneath those figures the agents wrote 71 transactions: **43 sales lines**
-totalling **$3,916.36** across **16 distinct catalog items**, and **28 supplier
-restock orders** totalling **$2,216.32** — a **43.4% net margin** on the
-period's trading. A further **12 restock orders were refused by a guard** before
+Beneath those figures the agents wrote 70 transactions: **42 sales lines**
+totalling **$3,892.61** across **16 distinct catalog items**, and **28 supplier
+restock orders** totalling **$2,216.32** — a **43.1% net margin** on the
+period's trading. A further **11 restock orders were refused by a guard** before
 any money moved.
 
 ### 4.2 Fulfilled orders
@@ -258,8 +258,8 @@ ledger exactly:
 
 ```
 Confirmed order
-  - 2000 x Poster paper — $450.00 (10% bulk discount)
   - 5000 x Flyers — $660.00 (12% bulk discount)
+  - 2000 x Poster paper — $450.00 (10% bulk discount)
   Order total: $1,110.00
 ```
 
@@ -286,14 +286,14 @@ guard rather than a model judgement:
 - **Request 19** — three lines critically short, none restockable before the
   20 April deadline.
 
-A further nine requests declined at least one line while fulfilling others.
+A further eight requests declined at least one line while fulfilling others.
 
 ### 4.4 Strengths
 
 1. **The customer story and the ledger agree.** Every cash delta reconciles with
    its slice of the transaction ledger, and every *Confirmed order* total equals
    both its own line items and the sales recorded (`audit_reconciliation.py`).
-2. **Quote and ledger cannot diverge.** All 43 recorded sales match the price
+2. **Quote and ledger cannot diverge.** All 42 recorded sales match the price
    the customer was quoted (`audit_prices.py`).
 3. **Every price a customer sees is backed by a recorded sale**
    (`audit_replies.py`), enforced by code rather than by instruction.
@@ -305,7 +305,7 @@ A further nine requests declined at least one line while fulfilling others.
 7. **Refusals are specific and actionable** — units short, supplier delivery
    against the deadline, or an item not carried.
 8. **Trading was profitable and solvent.** Cash never approached the $5,000
-   reserve; the period closed $1,700.04 up at a 43.4% margin.
+   reserve; the period closed $1,676.29 up at a 43.1% margin.
 9. **Zero failures.** No request hit the exception fallback.
 
 ### 4.5 First defect: the ledger trusted the model
@@ -352,9 +352,17 @@ only ever checked the ledger.
 `handle_customer_request` now marks the ledger position before the run, reads
 back exactly the sales that run produced, replaces any money figure in the prose
 that does not match one of them with an em dash, and appends an itemised
-*Confirmed order* block generated from the ledger. In this run that guard
-intervened on two replies (#6 and #12), each time removing a model-computed
-total that disagreed with the ledger.
+*Confirmed order* block generated from the ledger.
+
+A first version of this guard simply removed an unverified figure, which left
+replies reading *"Cardstock: 200 sheets, total price —"*. Correct, but a line
+item without a price is not complete information for the customer. It now
+identifies which sale a line refers to — by the item name and quantity the line
+itself states — and substitutes the real figure, falling back to removal only
+when the line is genuinely ambiguous. A summing line names no item, so it
+receives the ledger's order total. In this run the guard corrected one figure
+and left no gaps: `audit_replies.py` reports zero unbacked prices and no reply
+contains a blanked amount.
 
 ### 4.8 Fourth defect: fuzzy matching sold products nobody ordered
 
@@ -410,24 +418,21 @@ refuse rather than approximate.*
 
 ### 4.9 Remaining weaknesses
 
-1. **The prose and the ledger block can disagree in tone.** When the pricing
-   guard fires, the customer sees an em dash mid-sentence followed by a correct
-   summary. It is never wrong, but it is not elegant — the real fix is 5.2.
-2. **The synonym table is curated from observed traffic.** `CATALOG_ALIASES` was
+1. **The synonym table is curated from observed traffic.** `CATALOG_ALIASES` was
    built from wording that actually appeared in requests. A customer using an
    unanticipated synonym will be told the item is not carried — a safe failure,
    but a lost sale. Section 5.2 addresses this.
-3. **Replenishment is purely reactive.** Stock is only ordered once a customer
+2. **Replenishment is purely reactive.** Stock is only ordered once a customer
    has asked for it, by which point the supplier lead time frequently exceeds
    the deadline. Inventory value fell over the period despite 28 restock orders,
-   and 12 further restocks were refused on timing.
-4. **Two copies of the pricing formula.** `calculate_quote` and `record_sale`
+   and 11 further restocks were refused on timing.
+3. **Two copies of the pricing formula.** `calculate_quote` and `record_sale`
    each compute the line total independently. They agree today and
    `audit_prices.py` proves it, but a change to one without the other would
    silently reintroduce 4.5.
-5. **Quantities still pass through the model.** `record_sale` re-derives the
+4. **Quantities still pass through the model.** `record_sale` re-derives the
    price but takes the quantity as given. Section 5.3 proposes closing that gap.
-6. **Cost and latency.** Four agents and several LLM calls per request meant
+5. **Cost and latency.** Four agents and several LLM calls per request meant
    roughly 2–3 minutes per request, about 50 minutes for a full run.
 
 ---
@@ -457,12 +462,11 @@ At the **front**, item resolution should happen once, deterministically, before
 any agent runs — parsing the request into `(item, quantity, required_by)` tuples
 with `_resolve_item_name` and surfacing unresolved items immediately. That would
 also let an unrecognised synonym be logged for review and added to
-`CATALOG_ALIASES`, turning weakness 4.9.2 into a feedback loop rather than a
+`CATALOG_ALIASES`, turning weakness 4.9.1 into a feedback loop rather than a
 silent lost sale.
 
 At the **back**, section 4.7 fixed pricing by generating it from the ledger, but
-the surrounding prose is still authored by the model, which is why a corrected
-reply can read awkwardly. `handle_customer_request` should assemble the whole
+the surrounding prose is still authored by the model. `handle_customer_request` should assemble the whole
 message from a structured result — `(item, requested_qty, fulfilled_qty, total,
 discount_rate, availability_date, decline_reason)` — rendered through a Python
 template, asserting that every requested line has a verdict. The model would
@@ -481,11 +485,11 @@ request can be recorded as 2,000.
 The same change should extract the shared computation into a single
 `_line_total(item_name, quantity)` used by both `calculate_quote` and
 `record_sale`, so quote and ledger are identical by construction rather than by
-audit (weakness 4.9.4). While there, the discount ladder could become
+audit (weakness 4.9.3). While there, the discount ladder could become
 margin-aware: `BULK_DISCOUNT_TIERS` is currently a flat function of quantity,
 applied identically to a $0.02 napkin and a $2.50 roll of banner paper, and
 nothing prevents an unprofitable quote if `SUPPLIER_COST_RATIO` were raised. A
-floor of, say, 20% gross would make the observed 43.4% margin a controlled
+floor of, say, 20% gross would make the observed 43.1% margin a controlled
 outcome rather than a fortunate one.
 
 ---

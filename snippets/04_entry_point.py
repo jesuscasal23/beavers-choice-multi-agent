@@ -88,6 +88,34 @@ def _sales_since(last_transaction_id: int) -> pd.DataFrame:
     )
 
 
+def _sale_described_by(line: str, sales: pd.DataFrame):
+    """The recorded sale a prose line refers to, or None if it is ambiguous.
+
+    A line such as "- Cardstock: 200 sheets, total price $X" names both the item
+    and the quantity, so an unverified amount on it can be replaced with the real
+    one rather than blanked. Matching prefers item-and-quantity agreement, then
+    quantity alone, then item alone, and gives up unless exactly one sale fits.
+    """
+    numbers = {int(n.replace(",", "")) for n in re.findall(r"\d[\d,]*", line)}
+    resolved = _resolve_item_name(line)
+
+    both, by_quantity, by_item = [], [], []
+    for sale in sales.itertuples():
+        quantity_hit = int(sale.units) in numbers
+        item_hit = bool(resolved) and resolved == sale.item_name
+        if quantity_hit and item_hit:
+            both.append(sale)
+        if quantity_hit:
+            by_quantity.append(sale)
+        if item_hit:
+            by_item.append(sale)
+
+    for candidates in (both, by_quantity, by_item):
+        if len(candidates) == 1:
+            return candidates[0]
+    return None
+
+
 def _enforce_authoritative_pricing(reply: str, sales: pd.DataFrame) -> str:
     """Guarantee every price shown to the customer came from the ledger.
 
@@ -122,10 +150,29 @@ def _enforce_authoritative_pricing(reply: str, sales: pd.DataFrame) -> str:
     if summary_lines:
         authoritative.update(_money_forms(order_total))
 
-    def _keep_if_verified(match: re.Match) -> str:
-        return match.group(0) if match.group(0).replace(" ", "") in authoritative else "—"
+    # Correct line by line: a prose line usually names the item and quantity it
+    # is talking about, which is enough to identify the sale it refers to and
+    # substitute the real figure. Only when the line is ambiguous do we fall
+    # back to removing the amount -- a customer should see the right price, not
+    # a gap, and the gap is reserved for the case where we genuinely cannot tell
+    # which line was meant.
+    corrected_lines = []
+    for line in reply.split("\n"):
+        def _keep_or_correct(match: re.Match, line: str = line) -> str:
+            if match.group(0).replace(" ", "") in authoritative:
+                return match.group(0)
+            sale = _sale_described_by(line, sales)
+            if sale is not None:
+                return f"${float(sale.price):,.2f}"
+            # A summing line ("your combined order total is ...") names no item
+            # and no quantity, so nothing above can identify it -- but there is
+            # only one figure it could mean.
+            if summary_lines and re.search(r"\btotals?\b", line, re.IGNORECASE):
+                return f"${order_total:,.2f}"
+            return "—"
 
-    corrected = _MONEY_PATTERN.sub(_keep_if_verified, reply)
+        corrected_lines.append(_MONEY_PATTERN.sub(_keep_or_correct, line))
+    corrected = "\n".join(corrected_lines)
 
     if summary_lines:
         corrected += (
