@@ -184,6 +184,10 @@ Rules for the reply:
     "in stock", "on order from our supplier", "not available", "confirmed" or
     "could not be fulfilled" instead.
   - Never state a price or a date that did not come back from a specialist.
+    Every total you state must be the figure sales_agent CONFIRMED for that line
+    in its SALE COMPLETED message -- not the figure you sent it, and not one you
+    recalculated. Any price that does not match the ledger is removed from your
+    reply automatically.
   - A line may be described as confirmed or ordered ONLY if sales_agent reported
     SALE COMPLETED for it. If sales_agent reported SALE REJECTED, or you never
     sent the line to sales_agent, that line is declined and must be described

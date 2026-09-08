@@ -1,9 +1,14 @@
-"""Audit customer-facing replies for leaked internal vocabulary.
+"""Audit customer-facing replies for leaked internal vocabulary and unbacked prices.
 
 The system's internal status codes (AVAILABLE, RESTOCKED, UNAVAILABLE,
 SALE COMPLETED, SALE REJECTED) and its internal figures (cash balance, supplier
 cost, margin) must never reach a customer. _sanitize_customer_reply enforces
 this in code; this script verifies the enforcement held over a whole run.
+
+It also verifies that every money figure in a reply is backed by that reply's
+own ledger-generated "Confirmed order" block. The model was observed corrupting
+a $47.50 line into $237.50 between agents, so a price appearing in the prose
+that the ledger does not support is a defect.
 """
 import re
 
@@ -40,3 +45,32 @@ for request_id, match in term_hits:
 
 if not status_hits and not term_hits:
     print("\nNo internal status codes or internal figures reached a customer.")
+
+
+# --- every money figure must be backed by the ledger-generated summary --------
+MONEY = re.compile(r"\$\s?\d[\d,]*(?:\.\d{1,2})?")
+
+
+def _normalize(amount: str) -> str:
+    """Compare amounts by value, not spelling: $1365.00 and $1,365.00 are equal."""
+    return amount.replace(" ", "").replace(",", "")
+
+unbacked = []
+for row in results.itertuples():
+    reply = str(row.response)
+    if "Confirmed order" not in reply:
+        # Nothing was sold; no price should be quoted at all.
+        for match in MONEY.findall(reply):
+            unbacked.append((row.request_id, match, "no sale recorded"))
+        continue
+    prose, _, summary = reply.partition("Confirmed order")
+    backed = {_normalize(m) for m in MONEY.findall(summary)}
+    for match in MONEY.findall(prose):
+        if _normalize(match) not in backed:
+            unbacked.append((row.request_id, match, "not in the confirmed order"))
+
+print(f"prices not backed by the ledger : {len(unbacked)}")
+for request_id, amount, why in unbacked:
+    print(f"  request {request_id}: {amount} ({why})")
+if not unbacked:
+    print("\nEvery price shown to a customer is backed by a recorded sale.")

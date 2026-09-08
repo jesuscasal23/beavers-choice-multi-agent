@@ -1,11 +1,13 @@
 # Beaver's Choice Paper Company — Multi-Agent System
 ## Reflection Report
 
-**Framework:** `smolagents` 1.26
-**Model:** `gpt-4o-mini` at `temperature=0.1`, via the Vocareum OpenAI-compatible proxy (`https://openai.vocareum.com/v1`)
-**Agents:** 4 (one orchestrator + three workers), against a permitted maximum of five
-**Diagram:** `diagram/beavers_choice_workflow.png`
-**Evaluation output:** `test_results.csv` (full agent trace in `run_full.log`)
+| | |
+|---|---|
+| **Framework** | `smolagents` 1.26 |
+| **Model** | `gpt-4o-mini` at `temperature=0.1`, via the Vocareum OpenAI-compatible proxy (`https://openai.vocareum.com/v1`) |
+| **Agents** | 4 — one orchestrator + three workers, against a permitted maximum of five |
+| **Diagram** | `diagram/beavers_choice_workflow.png` |
+| **Evaluation output** | `test_results.csv`, full agent trace in `run_full.log` |
 
 ---
 
@@ -180,7 +182,11 @@ Four mechanisms keep the customer output complete but not leaky:
 4. **No leaked failures.** `handle_customer_request` catches every exception,
    logs the real cause to stdout for us, and returns a neutral message to the
    customer. A Python traceback can never reach `test_results.csv`.
-5. **A deterministic backstop on the vocabulary.** `_sanitize_customer_reply`
+5. **Money is never authored by the model.** `_enforce_authoritative_pricing`
+   reads back the sales this request actually wrote to the ledger, replaces any
+   money figure in the prose that does not match one of them, and appends an
+   itemised *Confirmed order* block generated from the ledger. See section 4.7.
+6. **A deterministic backstop on the vocabulary.** `_sanitize_customer_reply`
    runs on the final message before it leaves the system, rewriting the
    internal status codes (`AVAILABLE`, `RESTOCKED`, `UNAVAILABLE`,
    `SALE COMPLETED`, `SALE REJECTED`) into plain English and logging any
@@ -193,9 +199,10 @@ Four mechanisms keep the customer output complete but not leaky:
 
 The system was run against all 20 requests in `quote_requests_sample.csv`.
 Results are in `test_results.csv`; the full agent trace is in `run_full.log`.
-Three scripts reproduce the checks below: `analyze_results.py` (rubric
+Four scripts reproduce the checks below: `analyze_results.py` (rubric
 thresholds), `audit_prices.py` (every sale matches its quote) and
-`audit_replies.py` (no internal vocabulary reaches a customer).
+`audit_replies.py` (no internal vocabulary reaches a customer, and every price
+shown is backed by a recorded sale).
 
 ### 4.1 Run summary
 
@@ -206,19 +213,20 @@ thresholds), `audit_prices.py` (every sale matches its quote) and
 | Requests with at least one recorded sale | **17** | ≥ 3 |
 | Requests left entirely unfulfilled | **3** (#13, #15, #19) | ≥ 1 |
 | Requests containing at least one declined line | 9 | — |
-| Sales priced differently from their quote | **0 / 42** | — |
+| Sales priced differently from their quote | **0 / 39** | — |
+| Prices shown to a customer not backed by the ledger | **0 / 20** | — |
 | Internal status codes leaked to a customer | **0 / 20** | — |
 | Runtime errors / fallback responses | 0 | — |
 
 | Financial position | Start | End | Change |
 |---|---|---|---|
-| Cash balance | $45,059.70 | $46,242.28 | **+$1,182.58** |
-| Inventory value | $4,940.30 | $4,734.20 | −$206.10 |
-| Total assets | $50,000.00 | $50,976.48 | +$976.48 |
+| Cash balance | $45,059.70 | $46,589.49 | **+$1,529.79** |
+| Inventory value | $4,940.30 | $4,740.80 | −$199.50 |
+| Total assets | $50,000.00 | $51,330.29 | +$1,330.29 |
 
-Beneath those figures the agents wrote 73 transactions: **42 sales lines**
-totalling **$4,029.15** across **17 distinct catalog items**, and **31 supplier
-restock orders** totalling **$2,846.57** — a **29.4% net margin** on the
+Beneath those figures the agents wrote 71 transactions: **39 sales lines**
+totalling **$4,323.40** across **17 distinct catalog items**, and **32 supplier
+restock orders** totalling **$2,793.61** — a **35.4% net margin** on the
 period's trading. A further **14 restock orders were refused by a guard** before
 any money moved. The company ended more solvent than it began, which is the real
 test of whether the discount ladder and the cost-of-goods assumption are set
@@ -226,130 +234,139 @@ sensibly.
 
 ### 4.2 Fulfilled orders
 
-**Request 14** (2025-04-09, +$248.73 net cash) is the most instructive success
-because it is a *partial* fulfilment. Two lines sold — 5,000 sheets of A4 paper
-at a 12% bulk discount ($220.00) and 500 sheets of cardstock at 5% ($71.25) —
-while the third was declined with a checkable reason: *"we could not fulfil your
-request for poster paper (2,000 sheets) as it is not available in stock and will
-not arrive in time for your deadline."* The customer gets the business that can
-be done plus an honest account of the part that cannot.
+**Request 14** (2025-04-09) is the most instructive success because it is a
+*partial* fulfilment. Two lines sold — 5,000 sheets of A4 paper at a 12% bulk
+discount ($220.00) and 500 sheets of cardstock at 5% ($71.25) — while the third
+was declined with a stated reason. The reply closes with a ledger-generated
+confirmation:
 
-**Request 17** (2025-04-14, +$95.00) sold two of four lines at $47.50 each, both
-at the 5% / 500-unit tier, and declined the rest in plain language: *"table
-napkins: not available, as we have only 50 on hand and cannot restock in time."*
-This request is worth tracking across runs — it is the one that exposed both
-defects described in 4.5 and 4.6.
+```
+Confirmed order
+  - 500 x Cardstock — $71.25 (5% bulk discount)
+  - 5000 x A4 paper — $220.00 (12% bulk discount)
+  Order total: $291.25
+```
 
-**Request 20** (2025-04-17) closed the period with three lines sold.
+**Request 17** (2025-04-14) sold two of five lines at $47.50 each and declined
+three, each with its own reason. This request is worth tracking: it exposed two
+of the three defects described below, and in this run its customer-facing totals
+match the ledger exactly.
+
+**Request 20** (2025-04-17) closed the period with three lines totalling
+$1,365.00 at the 10–15% tiers.
 
 A request's cash delta is *net*: sales minus any restock bought to serve it.
-Request 14's customer total was $291.25, of which $42.52 went straight back out
-as a cardstock restock.
 
 ### 4.3 Declined orders
 
-Three requests were declined outright, and the reasons trace to specific code
-guards rather than model judgement:
+Three requests were declined outright, and each reason traces to a specific code
+guard rather than a model judgement:
 
-- **Request 15** — three lines, three distinct causes, named separately: an
-  8,544-sheet shortfall on A4 paper where a restock *"would not arrive until
-  April 19, 2025, which is after your required delivery date of April 15,
-  2025"*; the same on A3 colored paper; and *"cardboard for signage"*, which
-  Beaver's Choice does not carry. The first two are the `_restock`
-  delivery-deadline guard; the third is `_resolve_item_name` correctly refusing
-  to force a match onto a real product.
+- **Request 15** — *"A4 white paper: could not be fulfilled because not enough
+  stock on hand. A3 colored paper: could not be fulfilled because not enough
+  stock on hand. cardboard for signage: could not be fulfilled because the item
+  is not one we carry."* The first two are the `_restock` delivery-deadline
+  guard; the third is `_resolve_item_name` correctly refusing to force a match
+  onto a real product.
 - **Request 19** — three lines critically short, none restockable before the
   20 April deadline.
 - **Request 13** — cardstock short, restock arriving after the deadline.
 
 ### 4.4 Strengths
 
-1. **Quote and ledger cannot diverge.** All 42 recorded sales match the price
-   the customer was quoted, verified independently by `audit_prices.py`.
-2. **No internal vocabulary reaches customers.** Verified across all 20 replies
-   by `audit_replies.py`.
-3. **The system refuses rather than overselling.** No transaction was written
-   for stock that did not exist; `record_sale` re-reads stock at commit time.
-4. **Refusals are specific and actionable.** Every declined line names the real
-   blocker — units short, supplier delivery against the deadline, or an item not
-   carried — rather than offering a generic apology.
-5. **Partial fulfilment works.** The system routinely sells what it can and
-   declines the rest in one coherent reply, rather than failing a whole order
-   because one line is short.
-6. **Trading was profitable and solvent.** Cash never approached the $5,000
-   reserve and the period closed $1,182.58 up.
-7. **Zero failures.** No request hit the exception fallback and no Python error
-   text reached a customer-facing response.
+1. **Quote and ledger cannot diverge.** All 39 recorded sales match the price
+   the customer was quoted (`audit_prices.py`).
+2. **Every price a customer sees is backed by a recorded sale**
+   (`audit_replies.py`), enforced by code rather than by instruction.
+3. **No internal vocabulary reaches customers**, verified across all 20 replies.
+4. **The system refuses rather than overselling.** No transaction was written
+   for stock that did not exist.
+5. **Refusals are specific and actionable** — units short, supplier delivery
+   against the deadline, or an item not carried.
+6. **Partial fulfilment works.** The system sells what it can and declines the
+   rest in one coherent reply.
+7. **Trading was profitable and solvent.** Cash never approached the $5,000
+   reserve; the period closed $1,529.79 up.
+8. **Zero failures.** No request hit the exception fallback.
 
-### 4.5 First defect found and fixed: the ledger trusted the model
+### 4.5 First defect: the ledger trusted the model
 
-An earlier full run passed every rubric threshold and closed $1,899.57 up — and
+An early full run passed every rubric threshold and closed $1,899.57 up — and
 was wrong. Auditing each recorded sale against the price the customer had been
-quoted revealed that **3 of 40 sale lines had been billed at a price the
-customer was never quoted**: two overcharged by $190 each (a $47.50 line written
-to the ledger at $237.50) and one undercharged by $23.52 — a net overcharge of
-$356.48.
+quoted revealed **3 of 40 sale lines billed at a price the customer was never
+quoted**: two overcharged by $190 each (a $47.50 line written to the ledger at
+$237.50) and one undercharged — a net overcharge of $356.48.
 
-The cause was a single gap in the principle stated in section 1.3.
 `calculate_quote` computed the price deterministically, but `record_sale`
 accepted `total_price` as an argument and wrote whatever it was given, so the
 agreed figure had to survive a hop from `quoting_agent` through the orchestrator
 to `sales_agent`.
 
 `record_sale` now **re-derives** the line total from the catalog price and the
-discount ladder. The caller's figure is treated as a claim, not a fact: a
-disagreement is logged internally as a `[price correction]` line and the
-authoritative figure is charged. `audit_prices.py` now reports zero mismatches.
+discount ladder, treats the caller's figure as a claim, and logs any
+disagreement as a `[price correction]`. In a later run that guard fired three
+times in a single request, once against a claimed $1,125.00 on a line worth
+$5.50 — so the corruption is real and recurrent, not a one-off.
 
-The lower headline profit in later runs is the fix working — the earlier figure
-was inflated by overcharges.
+### 4.6 Second defect: internal vocabulary leaked to a customer
 
-### 4.6 Second defect found and fixed: internal vocabulary leaked to a customer
+The next run priced the ledger correctly but leaked differently: request 17
+rendered its declined lines as *"A4 white printer paper: UNAVAILABLE"*, passing
+an internal verdict token to the customer three times in one message.
 
-The next run priced everything correctly but leaked in a different way. Request
-17's reply rendered its declined lines as *"A4 white printer paper:
-UNAVAILABLE"* — passing the orchestrator's internal verdict token straight to
-the customer, three times in one message. Harmless in substance, but exactly
-what the confidentiality rules exist to prevent, and evidence that a prose
-instruction alone is not a control.
+The fix has two layers. The orchestrator's rules now name the five status codes
+as internal and give the phrasing to use instead; and `_sanitize_customer_reply`
+rewrites any surviving all-capitals token before the message leaves
+`handle_customer_request`, logging any other internal term for audit.
 
-The fix has two layers, deliberately:
+### 4.7 Third defect: the reply was priced by the model, not the ledger
 
-1. **Instruction.** The orchestrator's reply rules now name the five status
-   codes as internal and give the plain-English phrasing to use instead.
-2. **Code.** `_sanitize_customer_reply` rewrites any surviving all-capitals
-   status token before the message leaves `handle_customer_request`, and logs
-   any other internal term (cash balance, supplier cost, margin, agent names,
-   tracebacks) for audit.
+Fixing the ledger did not fix the customer. In the run after 4.5, request 17's
+reply told the customer *"$237.50 … $237.50 … total $475.00"* while the ledger,
+correctly, charged **$95.00**. The trace shows exactly what happened:
+`calculate_quote` returned $47.50 for each line; the model corrupted it to
+$237.50 on the hop to `sales_agent`; `record_sale`'s guard caught it and charged
+$47.50 — and the orchestrator then wrote the *corrupted* figure into the reply.
 
-**An honest note on which layer did the work.** In this run the instruction
-alone was sufficient: inspecting the orchestrator's raw output *before*
-sanitisation shows zero status codes in all 20 replies, so the code layer never
-had to activate. Its correctness is established by unit-testing the function
-directly, not by this run. That is the point of keeping it — the instruction
-happened to hold this time, and instructions are exactly the thing that had
-already failed once. The deterministic layer is what makes the property hold on
-runs I have not observed. Only the lower-case word "unavailable" survives
-sanitisation, because that is ordinary English and a perfectly good thing to say
-to a customer.
+The guard had protected the ledger and left the customer-facing message exposed.
+`audit_prices.py` reported clean because it only ever checked the ledger.
 
-### 4.7 Remaining weaknesses
+The fix makes money in the reply come from the ledger too.
+`handle_customer_request` marks the ledger position before the run, reads back
+exactly the sales that run produced, replaces any money figure in the prose that
+does not match one of them with an em dash, and appends an itemised
+*Confirmed order* block generated from the ledger. Correct figures pass through
+untouched; a wrong one is removed. `audit_replies.py` was extended to verify the
+property, and reports zero unbacked prices across all 20 replies.
 
-1. **Stock is occasionally bought for an order that is then declined.** The
-   restock decision is made per line, before the orchestrator knows whether the
-   order as a whole will proceed, so a request can end with a small negative
-   cash delta and some unsold inventory.
+In this run the guard intervened once, in request 8, where the model's combined
+total was wrong while all four line prices were right: the bad total was removed
+and the ledger's `$653.00` shown instead.
+
+**The pattern across all three defects.** Each was caused by trusting the model
+to carry a value faithfully across a hop, and each was fixed by moving the
+guarantee into code at the point of use. Stated once: *a value that must be
+correct should be computed where it is used, not passed between agents.* The
+architecture in section 1.4 came from the same realisation.
+
+### 4.8 Remaining weaknesses
+
+1. **The prose and the ledger block can disagree in tone.** When the guard fires,
+   the customer sees an em dash mid-sentence followed by a correct summary. It is
+   never wrong, but it is not elegant — the real fix is 5.2.
 2. **Replenishment is purely reactive.** Stock is only ordered once a customer
    has asked for it, by which point the supplier lead time (4 days over 100
    units, 7 days over 1,000) frequently exceeds the deadline. Inventory value
-   *fell* over the period despite 31 restock orders, and 14 further restocks
-   were refused on timing. This single dynamic accounts for every outright
-   decline.
-3. **Two copies of the pricing formula.** `calculate_quote` and `record_sale`
+   *fell* over the period despite 32 restock orders, and 14 further restocks were
+   refused on timing. This accounts for every outright decline.
+3. **Stock is occasionally bought for an order that is then declined**, because
+   the restock decision is made per line before the orchestrator knows whether
+   the order as a whole will proceed.
+4. **Two copies of the pricing formula.** `calculate_quote` and `record_sale`
    each compute the line total independently. They agree today and
    `audit_prices.py` proves it, but a change to one without the other would
-   silently reintroduce the divergence of section 4.5.
-4. **Cost and latency.** Four agents and several LLM calls per request meant
+   silently reintroduce 4.5.
+5. **Cost and latency.** Four agents and several LLM calls per request meant
    roughly 2–3 minutes per request, about 50 minutes for a full run.
 
 ---
@@ -368,29 +385,28 @@ reorder pass — run between requests, or as a fifth agent using the one remaini
 slot in the five-agent budget — could reorder any item whose projected stock at
 the end of its lead time falls below `min_stock_level`. Because the declines
 were caused by *timing* rather than by price or solvency, this alone would
-convert declined revenue into sales without touching the pricing logic. It would
-also largely dissolve weakness 4.7.1, since stock would rarely need to be bought
-reactively mid-request.
+convert declined revenue into sales without touching the pricing logic, and
+would largely dissolve weakness 4.8.3 as a side effect.
 
-### 5.2 Compose the customer reply from a template over validated data
+### 5.2 Compose the whole reply from a template, not just the prices
 
-Section 4.6 fixed the *symptom* deterministically, but the reply is still free
-prose written by the orchestrator from what it remembers of three agents'
-reports. The sanitiser can only catch vocabulary it has been told about.
+Section 4.7 fixed pricing by generating it from the ledger, but the surrounding
+prose is still authored by the model, which is why a corrected reply can read
+awkwardly. The same treatment should extend to the whole message.
 
-The structural fix is for `handle_customer_request` to assemble the reply itself
-from a list of `(item, quantity, verdict, total, discount_rate,
-availability_date, decline_reason)` records rendered through a Python template,
-and to assert that the number of verdicts returned equals the number of line
-items requested, re-querying the inventory agent for any line missing one. The
-model would still do the language understanding at the front of the pipeline and
-the judgement in the middle; it would simply stop being the last thing between
-the data and the customer. An unknown internal token could then never leak,
-because the template has no slot for one.
+`handle_customer_request` would assemble the reply from a structured result — a
+list of `(item, quantity, verdict, total, discount_rate, availability_date,
+decline_reason)` records rendered through a Python template — and assert that
+the number of verdicts returned equals the number of line items requested,
+re-querying the inventory agent for any line missing one. The model would still
+do the language understanding at the front of the pipeline and the judgement in
+the middle; it would simply stop being the last thing between the data and the
+customer. Every defect in 4.5–4.7 would then be structurally impossible rather
+than caught after the fact.
 
 ### 5.3 Factor the pricing formula into one shared function, and make it margin-aware
 
-Two improvements to the same code. First, weakness 4.7.3: extract the shared
+Two improvements to the same code. First, weakness 4.8.4: extract the shared
 computation into a single `_line_total(item_name, quantity)` used by both
 `calculate_quote` and `record_sale`, so quote and ledger are identical by
 construction rather than by audit.
@@ -398,13 +414,13 @@ construction rather than by audit.
 Second, `BULK_DISCOUNT_TIERS` is a flat function of quantity, applied identically
 to a $0.02 napkin and a $2.50 roll of banner paper. At the assumed 50% cost of
 goods a 15% discount is comfortably absorbed, but the ladder has no knowledge of
-that and would keep discounting if `SUPPLIER_COST_RATIO` were raised or
-per-item supplier costs introduced. A margin-aware `_line_total` would compute
-the implied margin after discount and cap it at whatever keeps the line above a
-floor — say 20% gross. The observed 29.4% margin is healthy by construction
-rather than by control; nothing currently prevents an unprofitable quote. The
-floor would also let the company offer *deeper* discounts on genuinely
-high-margin items to win larger orders.
+that and would keep discounting if `SUPPLIER_COST_RATIO` were raised or per-item
+supplier costs introduced. A margin-aware `_line_total` would compute the implied
+margin after discount and cap it at whatever keeps the line above a floor — say
+20% gross. The observed 35.4% margin is healthy by construction rather than by
+control; nothing currently prevents an unprofitable quote. The floor would also
+let the company offer *deeper* discounts on genuinely high-margin items to win
+larger orders.
 
 ---
 
@@ -415,10 +431,10 @@ high-margin items to win larger orders.
 | `diagram/beavers_choice_workflow.png` | Agent workflow diagram — 4 agents, 14 tool bindings, each labelled with its purpose and the starter helper function it wraps |
 | `project_starter.py` | Complete implementation in a single Python file |
 | `test_results.csv` | Evaluation output over all 20 sample requests |
-| `report/reflection_report.md` | This report |
+| `report/reflection_report.pdf` | This report |
 
 Supporting evidence, not part of the required submission: `run_full.log` (full
-agent trace), `analyze_results.py`, `audit_prices.py` and `audit_replies.py`
-(the three verification scripts), and `run_prev_with_leak.log` /
-`test_results_prev_with_leak.csv` — the earlier run in which request 17 leaked the
-`UNAVAILABLE` token, kept as the before-picture for section 4.6.
+agent trace), the four verification scripts (`analyze_results.py`,
+`audit_prices.py`, `audit_replies.py`), and two earlier runs kept as
+before-pictures — `run_prev_with_leak.log` for section 4.6 and
+`run_prev_reply_price_bug.log` for section 4.7, with their `test_results` CSVs.

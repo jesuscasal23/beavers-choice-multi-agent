@@ -59,6 +59,91 @@ def _sanitize_customer_reply(reply: str) -> str:
     return cleaned
 
 
+# Any run of digits preceded by a dollar sign, with or without thousands commas
+# and with or without cents.
+_MONEY_PATTERN = re.compile(r"\$\s?\d[\d,]*(?:\.\d{1,2})?")
+
+
+def _last_transaction_id() -> int:
+    """Highest rowid in the transactions ledger right now."""
+    latest = pd.read_sql("SELECT COALESCE(MAX(rowid), 0) AS max_id FROM transactions", db_engine)
+    return int(latest.iloc[0]["max_id"])
+
+
+def _sales_since(last_transaction_id: int) -> pd.DataFrame:
+    """Sales written to the ledger after a given rowid.
+
+    Called with the rowid captured immediately before an orchestrator run, this
+    returns exactly the sales that run produced -- which is what makes it
+    possible to price the reply from the ledger rather than from the model's
+    recollection.
+    """
+    return pd.read_sql(
+        text(
+            "SELECT item_name, units, price FROM transactions "
+            "WHERE rowid > :last_id AND transaction_type = 'sales' ORDER BY rowid"
+        ),
+        db_engine,
+        params={"last_id": last_transaction_id},
+    )
+
+
+def _enforce_authoritative_pricing(reply: str, sales: pd.DataFrame) -> str:
+    """Guarantee every price shown to the customer came from the ledger.
+
+    record_sale already protects the LEDGER from a corrupted price. It cannot
+    protect the customer-facing message, because the orchestrator writes that
+    from what it remembers rather than from the confirmations. In evaluation the
+    model corrupted a $47.50 line into $237.50 on the hop between agents three
+    times in a single request; the ledger was charged correctly and the customer
+    was quoted the corrupt figure.
+
+    So: any money figure in the prose that does not match a recorded sale is
+    replaced with an em dash, and an itemised summary generated from the ledger
+    is appended. The customer may see a dash, but never a wrong price.
+
+    This is the narrowly-scoped version of composing the whole reply from a
+    template -- applied to the part that must be correct.
+    """
+    authoritative = set()
+    summary_lines = []
+    order_total = 0.0
+
+    for sale in sales.itertuples():
+        price, quantity = float(sale.price), int(sale.units)
+        order_total += price
+        discount_rate = _discount_rate_for(quantity)
+        authoritative.update(_money_forms(price))
+        summary_lines.append(
+            f"  - {quantity} x {sale.item_name} — ${price:,.2f}"
+            + (f" ({discount_rate:.0%} bulk discount)" if discount_rate else "")
+        )
+
+    if summary_lines:
+        authoritative.update(_money_forms(order_total))
+
+    def _keep_if_verified(match: re.Match) -> str:
+        return match.group(0) if match.group(0).replace(" ", "") in authoritative else "—"
+
+    corrected = _MONEY_PATTERN.sub(_keep_if_verified, reply)
+
+    if summary_lines:
+        corrected += (
+            "\n\nConfirmed order\n"
+            + "\n".join(summary_lines)
+            + f"\n  Order total: ${order_total:,.2f}"
+        )
+    return corrected
+
+
+def _money_forms(amount: float) -> set:
+    """Every spelling of an amount we are willing to accept in the prose."""
+    forms = {f"${amount:,.2f}", f"${amount:.2f}"}
+    if amount == int(amount):
+        forms.update({f"${amount:,.0f}", f"${amount:.0f}"})
+    return forms
+
+
 def handle_customer_request(request_text: str, request_date: str) -> str:
     """Runs one customer request through the multi-agent system.
 
@@ -78,8 +163,12 @@ def handle_customer_request(request_text: str, request_date: str) -> str:
         request_date=request_date,
         default_required_by=default_required_by,
     )
+    # Ledger position before the run, so the sales this request produces can be
+    # identified afterwards and used to price the reply.
+    ledger_mark = _last_transaction_id()
     try:
-        return _sanitize_customer_reply(str(orchestrator_agent.run(task)).strip())
+        reply = _sanitize_customer_reply(str(orchestrator_agent.run(task)).strip())
+        return _enforce_authoritative_pricing(reply, _sales_since(ledger_mark))
     except Exception as error:  # noqa: BLE001 -- deliberately catch everything
         # Log the real cause internally; return something safe to the customer.
         print(f"[orchestrator error] {type(error).__name__}: {error}")

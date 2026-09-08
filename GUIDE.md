@@ -23,7 +23,7 @@ cd ~/Desktop/beavers-choice-project && .venv/bin/python project_starter.py
 | `run_full.log` | Full agent trace of that run |
 | `analyze_results.py` | Checks `test_results.csv` against the rubric thresholds |
 | `audit_prices.py` | Re-derives every recorded sale and flags any that diverge from the quote |
-| `audit_replies.py` | Scans every customer reply for leaked internal status codes or figures |
+| `audit_replies.py` | Scans every reply for leaked internal status codes, and for prices the ledger does not back |
 | `diagram/workflow.mmd` | Mermaid source for the workflow diagram |
 | `diagram/beavers_choice_workflow.png` | **Rendered diagram for submission** |
 | `report/reflection_report.md` | **The reflection report for submission** |
@@ -187,6 +187,24 @@ property hold on runs nobody has watched.
 Note the lower-case word "unavailable" passes through untouched — it is ordinary
 English and a perfectly good thing to say to a customer.
 
+### 3.6 Money in the reply comes from the ledger — the fourth bug
+
+Fixing the ledger (§3.4) did not fix the customer. In the next run, request 17's
+reply said *"$237.50 … $237.50 … total $475.00"* while the ledger correctly
+charged **$95.00**. `calculate_quote` had returned $47.50 per line; the model
+corrupted it on the hop to `sales_agent`; `record_sale`'s guard caught it and
+charged correctly — and the orchestrator then wrote the corrupted figure into
+the reply. The guard protected the ledger and left the message exposed, and
+`audit_prices.py` reported clean because it only checked the ledger.
+
+`handle_customer_request` now marks the ledger position before the run, reads
+back exactly the sales that run produced, replaces any money figure in the prose
+that does not match one of them with an em dash, and appends a ledger-generated
+`Confirmed order` block. Correct figures survive untouched.
+
+Three bugs, one root cause: trusting the model to carry a value across a hop.
+Each was fixed by moving the guarantee into code at the point of use.
+
 ---
 
 ## 4. Tools and helper-function coverage
@@ -267,8 +285,8 @@ of 20 costs a chunk of the Vocareum budget.
 
 You need ≥3 requests that change the cash balance, ≥3 fulfilled, and ≥1
 unfulfilled with a stated reason. Both audits must report zero: every recorded
-sale has to equal the price the customer was quoted, and no internal status code
-may appear in a reply.
+sale has to equal the price the customer was quoted, no internal status code may
+appear in a reply, and no price may appear that the ledger does not back.
 
 ### Troubleshooting
 

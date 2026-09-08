@@ -63,12 +63,20 @@ def _discount_rate_for(quantity: int) -> float:
     return 0.0
 
 
-def _current_stock(item_name: str, as_of_date: str) -> int:
-    """Normalize get_stock_level's single-row DataFrame down to an integer."""
-    stock_df = get_stock_level(item_name, as_of_date)
+def _units_from_stock_frame(stock_df: pd.DataFrame) -> int:
+    """Normalize get_stock_level's single-row DataFrame down to an integer.
+
+    The helper returns one row even for an item that has never been traded, with
+    a NULL item_name and a COALESCEd zero, so both cases are handled here.
+    """
     if stock_df.empty or pd.isna(stock_df.iloc[0]["current_stock"]):
         return 0
     return int(stock_df.iloc[0]["current_stock"])
+
+
+def _current_stock(item_name: str, as_of_date: str) -> int:
+    """Units on hand for a resolved catalog item, as a plain integer."""
+    return _units_from_stock_frame(get_stock_level(item_name, as_of_date))
 
 
 # ---- Inventory & supply tools ----------------------------------------------
@@ -117,7 +125,8 @@ def check_stock_level(item_name: str, as_of_date: str) -> str:
             f"'{item_name}' does not match any item in the Beaver's Choice "
             f"catalog. Call catalog_listing to see valid item names."
         )
-    units = _current_stock(resolved, as_of_date)
+    # Direct call to the starter helper: this tool is its thin wrapper.
+    units = _units_from_stock_frame(get_stock_level(resolved, as_of_date))
     return (
         f"{resolved}: {units} units on hand as of {as_of_date} "
         f"(list price ${_unit_price(resolved):.2f}/unit). "
